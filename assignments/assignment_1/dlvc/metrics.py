@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import torch
+import numpy as np
 
 class PerformanceMeasure(metaclass=ABCMeta):
     '''
@@ -40,15 +41,20 @@ class Accuracy(PerformanceMeasure):
 
     def __init__(self, classes) -> None:
         self.classes = classes
-
+        self.correct_predictions = 0
+        self.total_predictions = 0
+        self.class_correct_predictions = [0] * len(self.classes)
+        self.class_total_predictions = [0] * len(self.classes)
         self.reset()
 
     def reset(self) -> None:
         '''
         Resets the internal state.
         '''
-        ## TODO implement
-        pass
+        self.correct_predictions = 0
+        self.total_predictions = 0
+        self.class_correct_predictions = [0] * len(self.classes)
+        self.class_total_predictions = [0] * len(self.classes)
 
     def update(self, prediction: torch.Tensor, 
                target: torch.Tensor) -> None:
@@ -59,32 +65,51 @@ class Accuracy(PerformanceMeasure):
         Raises ValueError if the data shape or values are unsupported.
         '''
 
-        ## TODO implement
-        pass
+        if prediction.shape[1] != len(self.classes):
+            raise ValueError(f"Number of classes in prediction ({prediction.shape[1]}) \
+                               does not match the expected number of classes ({len(self.classes)}).")
+        if prediction.shape[0] != target.shape[0]:
+            raise ValueError("Number of samples in prediction and target tensors do not match.")
+        if target.min().item() < 0 or target.max().item() >= len(self.classes):
+            raise ValueError("Target values are out of bounds.")
+
+        predicted_classes = torch.argmax(prediction, dim=1)
+        self.correct_predictions += (predicted_classes == target).sum().item()
+        self.total_predictions += target.size(0)
+
+        for i in range(len(self.classes)):
+            class_mask = (target == i)  # Index of samples that belong to class i
+            self.class_correct_predictions[i] += (predicted_classes[class_mask] == i).sum().item()
+            self.class_total_predictions[i] += class_mask.sum().item()
 
     def __str__(self):
         '''
         Return a string representation of the performance, accuracy and per class accuracy.
         '''
+        performance_str = f'Overall Accuracy: {self.accuracy():.4f}\n'
+        performance_str += f'Per Class Accuracies:{self.per_class_accuracy():.4f} \n'
 
-        ## TODO implement
-        pass
-
+        return performance_str
 
     def accuracy(self) -> float:
         '''
         Compute and return the accuracy as a float between 0 and 1.
         Returns 0 if no data is available (after resets).
         '''
+        if self.total_predictions == 0:
+            return 0.0
+        return self.correct_predictions / self.total_predictions
 
-        ## TODO implement
-        pass
-    
     def per_class_accuracy(self) -> float:
         '''
         Compute and return the per class accuracy as a float between 0 and 1.
         Returns 0 if no data is available (after resets).
         '''
-        ## TODO implement
-        pass
+        if self.total_predictions == 0:
+            return 0.0
+        per_class_accuracies = np.zeros(len(self.classes))
+        for i in range(len(self.classes)):
+            if self.class_total_predictions[i] != 0:
+                per_class_accuracies[i] = self.class_correct_predictions[i] / self.class_total_predictions[i]
+        return per_class_accuracies.mean()
        
