@@ -28,8 +28,9 @@ class CIFAR10Dataset(ClassificationDataset):
         self.fdir = os.path.join(os.getcwd(), fdir)  # Base dataset folder directory
 
         # Check if the path is a directory
-        if not os.path.isdir(self.fdir):
-            raise ValueError("The provided path is not a directory")
+        #if not os.path.isdir(self.fdir):
+        #    print(self.fdir)
+        #    raise ValueError("The provided path is not a directory")
 
         # List of file names expected in the CIFAR-10 folder
         expected_files = [f'data_batch_{i}' for i in range(1, 6)] + ['test_batch']

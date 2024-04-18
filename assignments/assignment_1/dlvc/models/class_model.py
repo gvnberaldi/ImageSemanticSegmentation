@@ -16,7 +16,7 @@ class DeepClassifier(nn.Module):
         Saves the model, adds suffix to filename if given
         '''
         if suffix is not None:
-            save_dir += suffix
+            save_dir = Path.joinpath(save_dir, suffix)
 
         torch.save(self.state_dict(), save_dir)
 

@@ -5,6 +5,10 @@
 # Dataset
 data/
 
+wandb/
+
+./test_1.png
+
 # Test Main and output
 #test_main.py
 #test_1.png

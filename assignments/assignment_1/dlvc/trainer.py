@@ -2,9 +2,8 @@ import torch
 from typing import Tuple
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from tqdm import tqdm
-
-from wandb_logger import WandBLogger
+from tqdm import tqdm, trange
+from torchinfo import summary
 
 # for wandb users:
 from dlvc.wandb_logger import WandBLogger
@@ -117,17 +116,20 @@ class ImgClassificationTrainer(BaseTrainer):
 
 
         for i, data in enumerate(self.training_loader):
+            #print(self.model.device)
             # Every data instance is an input + label pair
             inputs, labels = data
+
+            inputs = inputs.to(self.device)
+            labels = labels.long().to(self.device)
 
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
 
             # Make predictions for this batch
             self.outputs = self.model(inputs)
-
             # Compute the loss and its gradients
-            self.loss = self.loss_fn(self.outputs, labels)
+            self.loss = self.loss_fn(self.outputs.squeeze(), labels)
             self.loss.backward()
 
             # Adjust learning weights
@@ -164,7 +166,8 @@ class ImgClassificationTrainer(BaseTrainer):
         for i, data in enumerate(self.validation_loader):
             # Every data instance is an input + label pair
             inputs, labels = data
-
+            inputs = inputs.to(self.device)
+            labels = labels.long().to(self.device)
             # Make predictions for this batch
             self.outputs = self.model(inputs)
 
@@ -179,7 +182,7 @@ class ImgClassificationTrainer(BaseTrainer):
             running_accuracy += self.val_metric.accuracy()
             running_per_class_accuracy += self.val_metric.per_class_accuracy()
 
-        print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
+        print(f'Validation metrics for epoch {epoch_idx}: Loss={running_loss}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
         return (running_loss, running_accuracy/(i+1), running_per_class_accuracy/(i+1))
 
         
@@ -201,7 +204,7 @@ class ImgClassificationTrainer(BaseTrainer):
                 val_metrics = self._val_epoch(epoch)
                 if val_metrics[1] > best_accuracy:
                     best_accuracy = val_metrics[1]
-                    self.model.save(save_dir = self.training_save_dir)
+                    self.model.save(save_dir = self.training_save_dir, suffix = 'model.pth')
 
 
 

@@ -15,7 +15,7 @@ def imshow(img):
 
 if __name__ == "__main__":
 
-    fdir = "data\\cifar-10-batches-py"
+    fdir = "assignments\\assignment_1\\data\\cifar-10-batches-py"
     transform = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
     classes = ('plane', 'car', 'bird', 'cat',
                'deer', 'dog', 'frog', 'horse', 'ship', 'truck')

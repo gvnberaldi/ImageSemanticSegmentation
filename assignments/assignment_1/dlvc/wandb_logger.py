@@ -14,9 +14,9 @@ class WandBLogger:
 
 
         if self.enabled:
-            wandb.init(entity="Technische Universität Wien",
-                        project="DLVC Assignment 1",
-                        group="Group 13")
+            wandb.init(entity="dlvc_group_13",
+                        project="assignment 1",
+                        group="MM")
             if run_name is None:
                 wandb.run.name = wandb.run.id    
             else:

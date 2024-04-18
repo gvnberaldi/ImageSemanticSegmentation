@@ -12,8 +12,12 @@ from dlvc.trainer import ImgClassificationTrainer
 from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
 
+from torchvision.models import resnet18
 
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import ExponentialLR
 
+from torchinfo import summary
 
 
 def train(args):
@@ -32,18 +36,25 @@ def train(args):
                             v2.ToDtype(torch.float32, scale=True),
                             v2.Normalize(mean = [0.485, 0.456,0.406], std = [0.229, 0.224, 0.225])])
     
-    
-    train_data = ...
-    
-    val_data = ...
+
+    fdir = "data\\cifar-10-batches-py"
+
+    train_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TRAINING, transform=train_transform)
+    val_data = CIFAR10Dataset(fdir=fdir, subset=Subset.VALIDATION, transform=val_transform)
+    test_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TEST)
     
  
         
-    device = ... 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+    
+    mod = resnet18()
+    mod.fc = torch.nn.Linear(mod.fc.in_features, 10)
 
-    model = DeepClassifier(...)
-    model.to(device)
-    optimizer = ...
+    model = DeepClassifier(mod)
+    model = model.to(device)
+    print(summary(model))
+    optimizer = AdamW(model.parameters(),lr=0.001, amsgrad=True)
     loss_fn = torch.nn.CrossEntropyLoss()
     
     train_metric = Accuracy(classes=train_data.classes)
@@ -53,7 +64,7 @@ def train(args):
     model_save_dir = Path("saved_models")
     model_save_dir.mkdir(exist_ok=True)
 
-    lr_scheduler = ...
+    lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.9)
     
     trainer = ImgClassificationTrainer(model, 
                     optimizer,
