@@ -4,6 +4,8 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from tqdm import tqdm
 
+from wandb_logger import WandBLogger
+
 # for wandb users:
 from dlvc.wandb_logger import WandBLogger
 
@@ -77,12 +79,27 @@ class ImgClassificationTrainer(BaseTrainer):
             - Optionally use weights & biases for tracking metrics and loss: initializer W&B logger
 
         '''
-        
 
-        ## TODO implement
-        pass
+        self.model = model
+        self.optimizer = optimizer
+        self.loss_fn = loss_fn
+        self.lr_scheduler = lr_scheduler
+        self.train_metric = train_metric
+        self.val_metric = val_metric
+        self.train_data = train_data
+        self.val_data = val_data
+        self.device = device
+        self.num_epochs = num_epochs
+        self.training_save_dir = training_save_dir
+        self.batch_size = batch_size
+        self.val_frequency = val_frequency
+
+        # Create data loaders
+        self.training_loader = torch.utils.data.DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
+        self.validation_loader = torch.utils.data.DataLoader(val_data, batch_size=self.batch_size, shuffle=False)
         
-        
+        self.wandblogger = WandBLogger(model=self.model)
+
 
     def _train_epoch(self, epoch_idx: int) -> Tuple[float, float, float]:
         """
@@ -92,13 +109,45 @@ class ImgClassificationTrainer(BaseTrainer):
 
         epoch_idx (int): Current epoch number
         """
-        ## TODO implement
-        pass
 
-        
+        # Logic mostly from https://pytorch.org/tutorials/beginner/introyt/trainingyt.html
+        running_loss = 0.
+        running_accuracy = 0.
+        running_per_class_accuracy = 0.
+
+
+        for i, data in enumerate(self.training_loader):
+            # Every data instance is an input + label pair
+            inputs, labels = data
+
+            # Zero your gradients for every batch!
+            self.optimizer.zero_grad()
+
+            # Make predictions for this batch
+            self.outputs = self.model(inputs)
+
+            # Compute the loss and its gradients
+            self.loss = self.loss_fn(self.outputs, labels)
+            self.loss.backward()
+
+            # Adjust learning weights
+            self.optimizer.step()
+
+            running_loss += self.loss.item()
+
+            # Get class accuracy
+            self.train_metric.update(prediction = self.outputs.squeeze(0).softmax(0), target = labels)
+
+            running_accuracy += self.train_metric.accuracy()
+            running_per_class_accuracy += self.train_metric.per_class_accuracy()
+
+        print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
+        return (running_loss, running_accuracy/(i+1), running_per_class_accuracy/(i+1))
 
 
     def _val_epoch(self, epoch_idx:int) -> Tuple[float, float, float]:
+
+        self.model.eval()
         """
         Validation logic for one epoch. 
         Prints current metrics at end of epoch.
@@ -106,8 +155,32 @@ class ImgClassificationTrainer(BaseTrainer):
 
         epoch_idx (int): Current epoch number
         """
-        ## TODO implement
-        pass
+        # Logic mostly from https://pytorch.org/tutorials/beginner/introyt/trainingyt.html
+        running_loss = 0.
+        running_accuracy = 0.
+        running_per_class_accuracy = 0.
+
+
+        for i, data in enumerate(self.validation_loader):
+            # Every data instance is an input + label pair
+            inputs, labels = data
+
+            # Make predictions for this batch
+            self.outputs = self.model(inputs)
+
+            # Compute the loss
+            self.loss = self.loss_fn(self.outputs, labels)
+
+            running_loss += self.loss.item()
+
+            # Get class accuracy
+            self.val_metric.update(prediction = self.outputs.squeeze(0).softmax(0), target = labels)
+
+            running_accuracy += self.val_metric.accuracy()
+            running_per_class_accuracy += self.val_metric.per_class_accuracy()
+
+        print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
+        return (running_loss, running_accuracy/(i+1), running_per_class_accuracy/(i+1))
 
         
 
@@ -119,10 +192,16 @@ class ImgClassificationTrainer(BaseTrainer):
         than currently saved best mean per class accuracy. 
         Depending on the val_frequency parameter, validation is not performed every epoch.
         """
-        ## TODO implement
-        pass
+        best_accuracy = 0.
 
-                
+        for epoch in range(self.num_epochs):
+            self.model.train()
+            self._train_epoch(epoch)
+            if (epoch+1) % self.val_frequency == 0:
+                val_metrics = self._val_epoch(epoch)
+                if val_metrics[1] > best_accuracy:
+                    best_accuracy = val_metrics[1]
+                    self.model.save(save_dir = self.training_save_dir)
 
 
 
