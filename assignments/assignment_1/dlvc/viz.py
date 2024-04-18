@@ -4,8 +4,6 @@ import torchvision.transforms.v2 as v2
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-
 from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
 
@@ -16,20 +14,13 @@ def imshow(img):
     plt.imsave("test_1.png",np.transpose(npimg, (1, 2, 0)))
 
 
-
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-transform = v2.Compose([v2.ToImage(), 
-                            v2.ToDtype(torch.float32, scale=True)])
+transform = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
 
-
-    
-train_data = CIFAR10Dataset(fdir="your_path_to_the_dataset", subset=Subset.TRAINING, transform=transform)
-train_data_loader = torch.utils.data.DataLoader(train_data,
-                                          batch_size=8,
-                                          shuffle=False,
-                                          num_workers=2)
+train_data = CIFAR10Dataset(fdir="data\\cifar-10-batches-py", subset=Subset.TRAINING, transform=transform)
+train_data_loader = torch.utils.data.DataLoader(train_data, batch_size=8, shuffle=False, num_workers=2)
 
 # get some random training images
 dataiter = iter(train_data_loader)
