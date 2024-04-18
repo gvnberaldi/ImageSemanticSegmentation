@@ -6,8 +6,8 @@
 data/
 
 # Test Main and output
-test_main.py
-test_1.png
+#test_main.py
+#test_1.png
 
 # User-specific stuff
 .idea/**/workspace.xml
