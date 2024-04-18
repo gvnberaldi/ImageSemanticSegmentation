@@ -45,6 +45,9 @@ class Accuracy(PerformanceMeasure):
         self.total_predictions = 0
         self.class_correct_predictions = [0] * len(self.classes)
         self.class_total_predictions = [0] * len(self.classes)
+
+        self.per_class_accuracies = np.zeros(len(self.classes))
+        self.overall_accuracy = 0
         self.reset()
 
     def reset(self) -> None:
@@ -55,6 +58,9 @@ class Accuracy(PerformanceMeasure):
         self.total_predictions = 0
         self.class_correct_predictions = [0] * len(self.classes)
         self.class_total_predictions = [0] * len(self.classes)
+
+        self.per_class_accuracies = np.zeros(len(self.classes))
+        self.overall_accuracy = 0
 
     def update(self, prediction: torch.Tensor, 
                target: torch.Tensor) -> None:
@@ -89,6 +95,9 @@ class Accuracy(PerformanceMeasure):
         performance_str = f'Overall Accuracy: {self.accuracy():.4f}\n'
         performance_str += f'Per Class Accuracies:{self.per_class_accuracy():.4f} \n'
 
+        for i in range(len(self.classes)):
+            performance_str += f'Accuracy for class {self.classes[i]} is: {self.per_class_accuracies[i]:.4f} \n'
+
         return performance_str
 
     def accuracy(self) -> float:
@@ -98,7 +107,8 @@ class Accuracy(PerformanceMeasure):
         '''
         if self.total_predictions == 0:
             return 0.0
-        return self.correct_predictions / self.total_predictions
+        self.overall_accuracy = self.correct_predictions / self.total_predictions
+        return self.overall_accuracy
 
     def per_class_accuracy(self) -> float:
         '''
@@ -107,9 +117,8 @@ class Accuracy(PerformanceMeasure):
         '''
         if self.total_predictions == 0:
             return 0.0
-        per_class_accuracies = np.zeros(len(self.classes))
         for i in range(len(self.classes)):
             if self.class_total_predictions[i] != 0:
-                per_class_accuracies[i] = self.class_correct_predictions[i] / self.class_total_predictions[i]
-        return per_class_accuracies.mean()
+                self.per_class_accuracies[i] = self.class_correct_predictions[i] / self.class_total_predictions[i]
+        return self.per_class_accuracies.mean()
        
