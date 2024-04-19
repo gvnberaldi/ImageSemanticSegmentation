@@ -144,8 +144,9 @@ class ImgClassificationTrainer(BaseTrainer):
             running_per_class_accuracy += self.train_metric.per_class_accuracy()
 
         print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
+        
+        self.wandblogger.log({'train-loss': running_loss, 'train-accuracy': running_accuracy/(i+1), 'train per class accuracy': running_per_class_accuracy/(i+1)})
         return (running_loss, running_accuracy/(i+1), running_per_class_accuracy/(i+1))
-
 
     def _val_epoch(self, epoch_idx:int) -> Tuple[float, float, float]:
 
@@ -182,7 +183,9 @@ class ImgClassificationTrainer(BaseTrainer):
             running_accuracy += self.val_metric.accuracy()
             running_per_class_accuracy += self.val_metric.per_class_accuracy()
 
-        print(f'Validation metrics for epoch {epoch_idx}: Loss={running_loss}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
+        print(str(self.val_metric))
+        
+        self.wandblogger.log({'validation-accuracy': running_accuracy/(i+1), 'validation per class accuracy': running_per_class_accuracy/(i+1)})
         return (running_loss, running_accuracy/(i+1), running_per_class_accuracy/(i+1))
 
         
