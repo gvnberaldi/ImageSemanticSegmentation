@@ -13,7 +13,14 @@ wandb/
 #test_main.py
 #test_1.png
 
+# Virtual Enviroment
+venv/
+
+#Saved model weight
+saved_models/
+
 # User-specific stuff
+.idea/
 .idea/**/workspace.xml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
@@ -88,3 +95,4 @@ fabric.properties
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
 
+.idea/material_theme_project_new.xml
