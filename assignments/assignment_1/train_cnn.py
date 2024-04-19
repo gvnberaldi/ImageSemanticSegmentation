@@ -6,7 +6,7 @@ import torch
 import torchvision.transforms.v2 as v2
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ExponentialLR
-from torchsummary import summary
+from torchinfo import summary
 
 from dlvc.models.class_model import DeepClassifier  # etc. change to your model
 from dlvc.models.cnn import YourCNN
@@ -33,7 +33,7 @@ def train(args):
 
     model = DeepClassifier(YourCNN())
     model = model.to(device)
-    summary(model, input_size=(3, 32, 32))
+    summary(model, input_size=(128,3, 32, 32))
 
     optimizer = AdamW(model.parameters(), lr=0.001, amsgrad=True)
     loss_fn = torch.nn.CrossEntropyLoss()
