@@ -74,7 +74,7 @@ def train(config=None):
 
         optimizer = AdamW(network.parameters(),lr=config.lr, amsgrad=True) if config.optimizer == 'AdamW' else SGD(network.parameters(),lr=config.lr, momentum = 0.9)
 
-        loss_fn = torch.nn.CrossEntropyLoss()
+        loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
     
         train_metric = Accuracy(classes=train_data.classes)
         val_metric = Accuracy(classes=val_data.classes)
