@@ -63,6 +63,8 @@ if __name__ == "__main__":
     dataiter = iter(train_data_loader)
     images, labels = next(dataiter)
 
+    print(images[0].size)
+
     # show images
     imshow(torchvision.utils.make_grid(images))
     # print labels

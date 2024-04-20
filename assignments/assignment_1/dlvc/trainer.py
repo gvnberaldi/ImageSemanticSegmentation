@@ -4,9 +4,10 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from tqdm import tqdm, trange
 from torchinfo import summary
+import wandb
 
 # for wandb users:
-from dlvc.wandb_logger import WandBLogger
+#from dlvc.wandb_logger import WandBLogger
 
 class BaseTrainer(metaclass=ABCMeta):
     '''
@@ -97,7 +98,6 @@ class ImgClassificationTrainer(BaseTrainer):
         self.training_loader = torch.utils.data.DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
         self.validation_loader = torch.utils.data.DataLoader(val_data, batch_size=self.batch_size, shuffle=False)
         
-        self.wandblogger = WandBLogger(model=self.model)
 
 
     def _train_epoch(self, epoch_idx: int) -> Tuple[float, float, float]:
@@ -145,12 +145,10 @@ class ImgClassificationTrainer(BaseTrainer):
 
         print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
         
-        self.wandblogger.log({'train-loss': running_loss, 'train-accuracy': running_accuracy/(i+1), 'train per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
+        wandb.log({'train-loss': running_loss, 'train-accuracy': running_accuracy/(i+1), 'train per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
         return (running_loss, running_accuracy/(i+1), running_per_class_accuracy/(i+1))
 
     def _val_epoch(self, epoch_idx:int) -> Tuple[float, float, float]:
-
-        self.model.eval()
         """
         Validation logic for one epoch. 
         Prints current metrics at end of epoch.
@@ -163,29 +161,29 @@ class ImgClassificationTrainer(BaseTrainer):
         running_accuracy = 0.
         running_per_class_accuracy = 0.
 
+        with torch.no_grad():
+            for i, data in enumerate(self.validation_loader):
+                # Every data instance is an input + label pair
+                inputs, labels = data
+                inputs = inputs.to(self.device)
+                labels = labels.long().to(self.device)
+                # Make predictions for this batch
+                self.outputs = self.model(inputs)
 
-        for i, data in enumerate(self.validation_loader):
-            # Every data instance is an input + label pair
-            inputs, labels = data
-            inputs = inputs.to(self.device)
-            labels = labels.long().to(self.device)
-            # Make predictions for this batch
-            self.outputs = self.model(inputs)
+                # Compute the loss
+                self.loss = self.loss_fn(self.outputs.squeeze(), labels)
 
-            # Compute the loss
-            self.loss = self.loss_fn(self.outputs, labels)
+                running_loss += self.loss.item()
 
-            running_loss += self.loss.item()
+                # Get class accuracy
+                self.val_metric.update(prediction = self.outputs.squeeze(0).softmax(0), target = labels)
 
-            # Get class accuracy
-            self.val_metric.update(prediction = self.outputs.squeeze(0).softmax(0), target = labels)
-
-            running_accuracy += self.val_metric.accuracy()
-            running_per_class_accuracy += self.val_metric.per_class_accuracy()
+                running_accuracy += self.val_metric.accuracy()
+                running_per_class_accuracy += self.val_metric.per_class_accuracy()
 
         print(str(self.val_metric))
         
-        self.wandblogger.log({'validation-accuracy': running_accuracy/(i+1), 'validation per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
+        wandb.log({'loss': running_loss,'validation-accuracy': running_accuracy/(i+1), 'validation per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
         return (running_loss, running_accuracy/(i+1), running_per_class_accuracy/(i+1))
 
         
@@ -200,10 +198,11 @@ class ImgClassificationTrainer(BaseTrainer):
         """
         best_accuracy = 0.
 
-        for epoch in range(self.num_epochs):
+        for epoch in trange(self.num_epochs):
             self.model.train()
             self._train_epoch(epoch)
             if (epoch+1) % self.val_frequency == 0:
+                self.model.eval()
                 val_metrics = self._val_epoch(epoch)
                 if val_metrics[1] > best_accuracy:
                     best_accuracy = val_metrics[1]
