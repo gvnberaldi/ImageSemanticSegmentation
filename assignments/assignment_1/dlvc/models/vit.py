@@ -133,7 +133,7 @@ class TransformerEncoder(nn.Module):
         super().__init__()
         self.norm1 = norm_layer(input_dim)
         #Last linear layer to get the final output value
-        self.attn_linear = nn.Linear(head_dim*num_heads, self.dim)
+        self.attn_linear = nn.Linear(head_dim*num_heads, input_dim)
 
         self.attn = nn.ModuleList(
             [Attention(input_dim, head_dim) for i in range(num_heads)]
