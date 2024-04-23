@@ -183,8 +183,6 @@ class ImgClassificationTrainer(BaseTrainer):
                 running_accuracy += self.val_metric.accuracy()
                 running_per_class_accuracy += self.val_metric.per_class_accuracy()
 
-        print(str(self.val_metric))
-
         if self.logger is not None:
             self.logger.log({'Validation Loss': running_loss/(i+1), 'Validation Accuracy': running_accuracy/(i+1), 'Validation Per Class Accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
         else:
