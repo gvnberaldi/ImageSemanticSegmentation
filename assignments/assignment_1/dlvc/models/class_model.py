@@ -9,7 +9,6 @@ class DeepClassifier(nn.Module):
 
     def forward(self, x):
         return self.net(x)
-    
 
     def save(self, save_dir: Path, suffix=None):
         '''

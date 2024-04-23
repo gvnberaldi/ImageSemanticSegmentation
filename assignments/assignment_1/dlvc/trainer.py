@@ -5,9 +5,7 @@ from pathlib import Path
 from tqdm import tqdm, trange
 from torchinfo import summary
 import wandb
-
-# for wandb users:
-#from dlvc.wandb_logger import WandBLogger
+from dlvc.wandb_logger import WandBLogger
 
 class BaseTrainer(metaclass=ABCMeta):
     '''
@@ -38,6 +36,7 @@ class BaseTrainer(metaclass=ABCMeta):
 
         pass
 
+
 class ImgClassificationTrainer(BaseTrainer):
     """
     Class that stores the logic for training a model for image classification.
@@ -55,7 +54,8 @@ class ImgClassificationTrainer(BaseTrainer):
                  num_epochs: int, 
                  training_save_dir: Path,
                  batch_size: int = 4,
-                 val_frequency: int = 5) -> None:
+                 val_frequency: int = 5,
+                 logger=None) -> None:
         '''
         Args and Kwargs:
             model (nn.Module): Deep Network to train
@@ -97,8 +97,8 @@ class ImgClassificationTrainer(BaseTrainer):
         # Create data loaders
         self.training_loader = torch.utils.data.DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
         self.validation_loader = torch.utils.data.DataLoader(val_data, batch_size=self.batch_size, shuffle=False)
-        
 
+        self.logger = logger
 
     def _train_epoch(self, epoch_idx: int) -> Tuple[float, float, float]:
         """
@@ -114,9 +114,8 @@ class ImgClassificationTrainer(BaseTrainer):
         running_accuracy = 0.
         running_per_class_accuracy = 0.
 
-
         for i, data in enumerate(self.training_loader):
-            #print(self.model.device)
+            # print(self.model.device)
             # Every data instance is an input + label pair
             inputs, labels = data
 
@@ -143,10 +142,13 @@ class ImgClassificationTrainer(BaseTrainer):
             running_accuracy += self.train_metric.accuracy()
             running_per_class_accuracy += self.train_metric.per_class_accuracy()
 
-        print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss/(i+1)}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
-        
-        wandb.log({'train-loss': running_loss/(i+1), 'train-accuracy': running_accuracy/(i+1), 'train per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
-        return (running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1))
+        print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss/(i+1)}, Accuracy = {running_accuracy/(i+1)}, Per Class Accuracy = {running_per_class_accuracy/(i+1)}')
+
+        if self.logger is not None:
+            self.logger.log({'Train Loss': running_loss/(i+1), 'Train Accuracy': running_accuracy/(i+1), 'Train Per Class Accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
+        else:
+            wandb.log({'train-loss': running_loss/(i+1), 'train-accuracy': running_accuracy/(i+1), 'train per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
+        return running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1)
 
     def _val_epoch(self, epoch_idx:int) -> Tuple[float, float, float]:
         """
@@ -182,11 +184,13 @@ class ImgClassificationTrainer(BaseTrainer):
                 running_per_class_accuracy += self.val_metric.per_class_accuracy()
 
         print(str(self.val_metric))
-        
-        wandb.log({'loss': running_loss/(i+1),'validation-accuracy': running_accuracy/(i+1), 'validation per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
-        return (running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1))
 
-        
+        if self.logger is not None:
+            self.logger.log({'Validation Loss': running_loss/(i+1), 'Validation Accuracy': running_accuracy/(i+1), 'Validation Per Class Accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
+        else:
+            wandb.log({'loss': running_loss/(i+1),'validation-accuracy': running_accuracy/(i+1), 'validation per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
+
+        return running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1)
 
     def train(self) -> None:
         """
@@ -206,7 +210,7 @@ class ImgClassificationTrainer(BaseTrainer):
                 val_metrics = self._val_epoch(epoch)
                 if val_metrics[1] > best_accuracy:
                     best_accuracy = val_metrics[1]
-                    self.model.save(save_dir = self.training_save_dir, suffix = 'model.pth')
+                    self.model.save(save_dir=self.training_save_dir, suffix='model.pth')
 
 
 

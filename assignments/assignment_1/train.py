@@ -13,7 +13,6 @@ from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
 
 from torchvision.models import resnet18
-
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ExponentialLR
 

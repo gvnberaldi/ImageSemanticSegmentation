@@ -1,5 +1,6 @@
 ## Feel free to change the imports according to your implementation and needs
 import argparse
+import os
 from pathlib import Path
 
 import torch
@@ -15,6 +16,7 @@ from dlvc.trainer import ImgClassificationTrainer
 from dlvc.datasets.cifar10 import CIFAR10Dataset
 from dlvc.datasets.dataset import Subset
 
+from dlvc.wandb_logger import WandBLogger
 
 def train(args):
 
@@ -31,7 +33,13 @@ def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
+    model_save_dir = Path("saved_models\\cnn")
+
     model = DeepClassifier(YourCNN())
+    '''if os.path.exists(Path.joinpath(model_save_dir, 'model.pth')):
+        print("Model weights loading...")
+        model.load(Path.joinpath(model_save_dir, 'model.pth'))'''
+
     model = model.to(device)
     summary(model, input_size=(128,3, 32, 32))
 
@@ -42,10 +50,10 @@ def train(args):
     val_metric = Accuracy(classes=val_data.classes)
     val_frequency = 5
 
-    model_save_dir = Path("saved_models\\cnn")
-    model_save_dir.mkdir(exist_ok=True)
-
     lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.9)
+
+    logger = WandBLogger(api_key="e5e7b3c0c3fbc088d165766e575853c01d6cb305",
+                         model=model, project="CNN Training", group="cnn_training")
 
     trainer = ImgClassificationTrainer(model,
                                        optimizer,
@@ -59,7 +67,8 @@ def train(args):
                                        args.num_epochs,
                                        model_save_dir,
                                        batch_size=128,  # feel free to change
-                                       val_frequency=val_frequency)
+                                       val_frequency=val_frequency,
+                                       logger=logger)
     trainer.train()
 
 if __name__ == "__main__":
