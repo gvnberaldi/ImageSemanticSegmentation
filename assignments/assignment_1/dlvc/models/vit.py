@@ -90,36 +90,29 @@ class Attention(nn.Module):
     def __init__(
             self,
             dim,
-            head_dim,
-            num_heads
+            head_dim
             ):
         super().__init__()
         self.dim = dim
         self.head_dim = head_dim
-        self.num_heads = num_heads
 
         # Initial linear layer to get the qkv for every head
-        self.qkv_layer = nn.Linear(self.dim,3*self.head_dim*self.num_heads)
+        self.qkv_layer = nn.Linear(self.dim,3*self.head_dim)
 
         #Softmax layer
         self.softmax = nn.Softmax(dim=-1)
         #Last linear layer to get the final output value
-        self.linear = nn.Linear(self.head_dim*self.num_heads, self.dim)
+        self.linear = nn.Linear(self.head_dim, self.dim)
 
     def forward(self,x):
         B, N, C = x.shape
         QKV = self.qkv_layer(x)
-        QKV = QKV.reshape(B,N,self.num_heads, 3*self.head_dim) #reshape to split different layers. We get a tensor
-        QKV = torch.permute(QKV, (0,2,1,3)) #Permute QKV layers to make next steps conceptionally easier
         Q,K,V = torch.chunk(QKV, 3, dim = -1) #Split the tensor at last layer into three equally sized parts
         
         H = Q.shape[-1]
         scaled = torch.matmul(Q,K.transpose(-2,-1))/math.sqrt(H) #We need to specify which axes to transpose as the tensors have 4 axes. 
         attn = self.softmax(scaled) 
         x = torch.matmul(attn, V)
-        x = torch.permute(x, (0,2,1,3)) #undo permutation
-        x = x.reshape(B,N,self.num_heads*self.head_dim) # concat
-        x = self.linear(x)
         return x
 
 class TransformerEncoder(nn.Module):
@@ -139,17 +132,19 @@ class TransformerEncoder(nn.Module):
             ):
         super().__init__()
         self.norm1 = norm_layer(input_dim)
-        self.attn = Attention(
-            input_dim,
-            head_dim,
-            num_heads
+        #Last linear layer to get the final output value
+        self.attn_linear = nn.Linear(head_dim*num_heads, self.dim)
+
+        self.attn = nn.ModuleList(
+            [Attention(input_dim, head_dim) for i in range(num_heads)]
         )
         self.norm2 = norm_layer(input_dim)
         self.mlp = MLP(input_dim,number_hidden_layers,hidden_layer_depth,input_dim, activation_function, dropout)
 
     def forward(self,x):
         out = self.norm1(x)
-        out = self.attn(out)
+        out = torch.cat([attn(out) for attn in self.attn], dim = -1)
+        out = self.attn_linear(out)
         x = torch.add(x,out)
         out = self.norm2(x)
         out = self.mlp(out)

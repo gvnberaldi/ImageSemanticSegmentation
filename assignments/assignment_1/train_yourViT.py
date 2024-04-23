@@ -138,54 +138,56 @@ if __name__ == "__main__":
         },
 
         'patch_size': {
-            'values': [2,4,8,16]
+            'values': [2,4,8,16,32]
         },
 
         'embed_dim': {
-            'values': [4,8,16,32,64]
+            'values': [2**i for i in range(2,6)]
         },
 
         'num_encoder_layers': {
-            'values': [1,2,3,4,5]
+            'values': [i+1 for i in range(6)]
         },
 
         'number_hidden_layers': {
-            'values': [1,2,3,4,5]
+            'values': [i+1 for i in range(6)]
         },
 
         'hidden_layer_depth': {
-            'values': [4,8,16,32,64]
+            'values': [2**i for i in range(2,6)]
         },
 
         'head_dim': {
-            'values': [4,8,16,32,64]
+            'values': [2**i for i in range(2,6)]
         },
 
         'num_heads': {
-            'values': [1,2,3,4,5]
+            'values': [i+1 for i in range(10)]
         },
 
         'dropout':{
             'distribution': 'uniform',
             'min': 0,
-            'max': 0.5 
+            'max': 0.8 
         },
 
+
+        #'weight_decay':{
+        #    'distribution': 'log_uniform_values',
+        #    'min': 0.0001,
+        #    'max': 0.1 
+        #},
+
         'mlp_head_number_hidden_layers': {
-            'values': [1,2,3,4,5]
+            'values': [i+1 for i in range(6)]
         },
 
         'mlp_head_hidden_layers_depth': {
-            'values': [4,8,16,32,64]
+            'values': [2**i for i in range(2,6)]
         },
 
         'batch_size': {
-        # integers between 32 and 1024
-        # with evenly-distributed logarithms 
-        'distribution': 'q_log_uniform_values',
-        'q': 8,
-        'min': 32,
-        'max': 1024,
+            'values': [128,256,512]
       }
 
     }

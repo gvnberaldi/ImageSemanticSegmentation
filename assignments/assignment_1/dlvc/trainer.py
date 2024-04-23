@@ -143,7 +143,7 @@ class ImgClassificationTrainer(BaseTrainer):
             running_accuracy += self.train_metric.accuracy()
             running_per_class_accuracy += self.train_metric.per_class_accuracy()
 
-        print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss/(i+1)}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
+        #print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss/(i+1)}, accuracy = {running_accuracy/(i+1)}, per class accuracy = {running_per_class_accuracy/(i+1)}')
         
         wandb.log({'train-loss': running_loss/(i+1), 'train-accuracy': running_accuracy/(i+1), 'train per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
         return (running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1))
@@ -181,7 +181,7 @@ class ImgClassificationTrainer(BaseTrainer):
                 running_accuracy += self.val_metric.accuracy()
                 running_per_class_accuracy += self.val_metric.per_class_accuracy()
 
-        print(str(self.val_metric))
+        #print(str(self.val_metric))
         
         wandb.log({'loss': running_loss/(i+1),'validation-accuracy': running_accuracy/(i+1), 'validation per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
         return (running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1))
