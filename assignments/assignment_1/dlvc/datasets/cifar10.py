@@ -1,8 +1,8 @@
 import os
-import pickle
 from typing import Tuple
 import numpy as np
 import pickle
+import random
 
 from dlvc.datasets.dataset import Subset, ClassificationDataset
 
@@ -11,7 +11,7 @@ class CIFAR10Dataset(ClassificationDataset):
     Custom CIFAR-10 Dataset.
     '''
 
-    def __init__(self, fdir: str, subset: Subset, transform=None):
+    def __init__(self, fdir: str, subset: Subset, transform=None, augmentation_transform=None, augment_probability=0.5):
         '''
         Loads the dataset from a directory fdir that contains the Python version
         of the CIFAR-10, i.e. files "data_batch_1", "test_batch" and so on.
@@ -43,6 +43,8 @@ class CIFAR10Dataset(ClassificationDataset):
         self.classes = ('plane', 'car', 'bird', 'cat',
                         'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
         self.transform = transform
+        self.augmentation_transform = augmentation_transform
+        self.augment_probability = augment_probability
         self.subset = subset
         self.images, self.labels = self._load_data()
 
@@ -67,8 +69,6 @@ class CIFAR10Dataset(ClassificationDataset):
         labels = data[b'labels']
         images = images.reshape(-1, 3, 32, 32)  # Reshape images to (num_samples, channels, height, width)
         images = images.transpose(0, 2, 3, 1)   # Transpose to (num_samples, height, width, channels)
-        if self.transform:
-            images = [self.transform(image) for image in images]
         return images, labels
 
     def _load_train_data(self):
@@ -102,7 +102,13 @@ class CIFAR10Dataset(ClassificationDataset):
         '''
         if idx < 0 or idx >= len(self.images):
             raise IndexError("Index out of bounds")
-        return self.images[idx], self.labels[idx]
+        image, label = self.images[idx], self.labels[idx]
+        if self.augmentation_transform and random.random() < self.augment_probability:
+            image = self.augmentation_transform(image)
+        elif self.transform:
+            image = self.transform(image)
+        return image, label
+
 
     def num_classes(self) -> int:
         # Returns the number of classes.

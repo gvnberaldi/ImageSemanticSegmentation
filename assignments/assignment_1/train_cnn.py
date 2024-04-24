@@ -27,9 +27,25 @@ def get_datasets():
                             v2.ToDtype(torch.float32, scale=True),
                             v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
+    # Define data augmentation transformations for the training set
+    augmentation_transform = v2.Compose([
+        v2.ToImage(),
+        # Randomly flip the image horizontally
+        v2.RandomHorizontalFlip(),
+        # Randomly rotate the image
+        v2.RandomRotation(15),
+        # Randomly crop and resize
+        v2.RandomResizedCrop(32, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
+        # Convert the image to a PyTorch tensor
+        v2.ToDtype(torch.float32, scale=True),
+        # Normalize the image with mean and standard deviation
+        v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
     fdir = "data\\cifar-10-batches-py"
 
-    train_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TRAINING, transform=transform)
+    train_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TRAINING, transform=transform,
+                                augmentation_transform=augmentation_transform)
     val_data = CIFAR10Dataset(fdir=fdir, subset=Subset.VALIDATION, transform=transform)
     test_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TEST, transform=transform)
 
@@ -119,7 +135,7 @@ def train(best_hyperparameters):
 
 
 if __name__ == "__main__":
-    logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
+    '''logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
     LOGGER = logger
 
     hyperparameters = {
@@ -144,4 +160,14 @@ if __name__ == "__main__":
     best_run = max(runs, key=lambda run: run.summary.get("Validation Accuracy", 0))
     best_hyperparameters = best_run.config
 
-    train(best_hyperparameters)
+    train(best_hyperparameters)'''
+
+    test_set, _, _ = get_datasets()
+
+    my_dataloader = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True)
+
+    # Get the first batch
+    data_iter = iter(my_dataloader)
+    first_batch = next(data_iter)  # This calls __getitem__ internally
+
+    print("First batch:", first_batch)
