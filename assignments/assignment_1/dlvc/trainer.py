@@ -145,7 +145,7 @@ class ImgClassificationTrainer(BaseTrainer):
         print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss/(i+1)}, Accuracy = {running_accuracy/(i+1)}, Per Class Accuracy = {running_per_class_accuracy/(i+1)}')
 
         if self.logger is not None:
-            self.logger.log({'Train Loss': running_loss/(i+1), 'Train Accuracy': running_accuracy/(i+1), 'Train Per Class Accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
+            self.logger.log({'Train Loss': running_loss/(i+1), 'Train Accuracy': running_accuracy/(i+1), 'Train Per Class Accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx, commit=False)
         else:
             wandb.log({'train-loss': running_loss/(i+1), 'train-accuracy': running_accuracy/(i+1), 'train per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
         return running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1)
@@ -184,7 +184,7 @@ class ImgClassificationTrainer(BaseTrainer):
                 running_per_class_accuracy += self.val_metric.per_class_accuracy()
 
         if self.logger is not None:
-            self.logger.log({'Validation Loss': running_loss/(i+1), 'Validation Accuracy': running_accuracy/(i+1), 'Validation Per Class Accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
+            self.logger.log({'Validation Loss': running_loss/(i+1), 'Validation Accuracy': running_accuracy/(i+1), 'Validation Per Class Accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx, commit=False)
         else:
             wandb.log({'loss': running_loss/(i+1),'validation-accuracy': running_accuracy/(i+1), 'validation per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
 
