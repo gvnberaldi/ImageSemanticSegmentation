@@ -99,7 +99,7 @@ def train(best_hyperparameters):
     loss_fn = torch.nn.CrossEntropyLoss()
     lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.9)
 
-    logger = WandBLogger(api_key=API_KEY, model=model, project_name="cnn_training", entity_name="dlvc_group_13")
+    logger = WandBLogger(api_key=API_KEY, model=model, project_name="cnn_training", entity_name="dlvc_group_13", run_name="cnn_training_final")
 
     trainer = ImgClassificationTrainer(model,
                                        optimizer,
@@ -110,7 +110,7 @@ def train(best_hyperparameters):
                                        train_data,
                                        val_data,
                                        device,
-                                       30,
+                                       120,
                                        model_save_dir,
                                        batch_size=best_hyperparameters['batch_size'],
                                        val_frequency=val_frequency,
@@ -119,8 +119,8 @@ def train(best_hyperparameters):
 
 
 if __name__ == "__main__":
-    logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
-    LOGGER = logger
+    #logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
+    #LOGGER = logger
 
     hyperparameters = {
         'batch_size': [128, 256, 512],  # Different batch sizes for experimentation
@@ -133,10 +133,10 @@ if __name__ == "__main__":
     }
 
     # Create and run the sweep
-    logger.set_sweep_config(metric_name="Validation Accuracy", metric_goal="maximize", hyperparameters=hyperparameters)
-    logger.create_sweep()
-    logger.set_training_function(tune)
-    logger.run_sweep(count=20)
+    #logger.set_sweep_config(metric_name="Validation Accuracy", metric_goal="maximize", hyperparameters=hyperparameters)
+    #logger.create_sweep()
+    #logger.set_training_function(tune)
+    #logger.run_sweep(count=20)
 
     # Retrieve the best hyperparameters
     api = wandb.Api()

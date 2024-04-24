@@ -127,8 +127,8 @@ if __name__ == "__main__":
 
         'lr':{
             'distribution': 'log_uniform_values',
-            'min': 0.0001,
-            'max': 0.95 
+            'min': 0.0005,
+            'max': 0.001
         }, 
 
         'gamma':{
@@ -136,11 +136,11 @@ if __name__ == "__main__":
         },
 
         'patch_size': {
-            'values': [4,8]
+            'value': 4
         },
 
         'embed_dim': {
-            'values': [2**i for i in [3,4,5,6,7]]
+            'values': [64,128]
         },
 
         'num_encoder_layers': {
@@ -148,19 +148,19 @@ if __name__ == "__main__":
         },
 
         'number_hidden_layers': {
-            'values': [1,2,3]
+            'value': 2
         },
 
         'hidden_layer_depth': {
-            'values': [2**i for i in [5,6,7,8,9,10]]
+            'values': [2**i for i in [9,10]]
         },
 
         'head_dim': {
-            'values': [2**i for i in [2,4,5,6,7,8]]
+            'values': [128, 256, 512]
         },
 
         'num_heads': {
-            'values': [4,5,6]
+            'value': 5
         },
 
         'dropout':{
@@ -177,11 +177,11 @@ if __name__ == "__main__":
         #},
 
         'mlp_head_number_hidden_layers': {
-            'values': [1,2]
+            'value': 2
         },
 
         'mlp_head_hidden_layers_depth': {
-            'values': [2**i for i in [5,6,7,8,9,10]]
+            'value': 128
         },
 
         'batch_size': {
