@@ -133,7 +133,7 @@ if __name__ == "__main__":
     }
 
     # Create and run the sweep
-    logger.set_sweep_config(metric_name="validation-accuracy", metric_goal="maximize", hyperparameters=hyperparameters)
+    logger.set_sweep_config(metric_name="Validation Accuracy", metric_goal="maximize", hyperparameters=hyperparameters)
     logger.create_sweep()
     logger.set_training_function(tune)
     logger.run_sweep(count=20)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     # Retrieve the best hyperparameters
     api = wandb.Api()
     runs = api.runs("dlvc_group_13/cnn_tuning")
-    best_run = max(runs, key=lambda run: run.summary.get("validation-accuracy", 0))
+    best_run = max(runs, key=lambda run: run.summary.get("Validation Accuracy", 0))
     best_hyperparameters = best_run.config
 
     train(best_hyperparameters)
