@@ -78,7 +78,7 @@ def tune():
                                            train_data,
                                            val_data,
                                            device,
-                                           30,
+                                           60,
                                            model_save_dir,
                                            batch_size=config.batch_size,
                                            val_frequency=val_frequency,
@@ -133,15 +133,15 @@ if __name__ == "__main__":
     }
 
     # Create and run the sweep
-    logger.set_sweep_config(metric_name="accuracy", metric_goal="maximize", hyperparameters=hyperparameters)
+    logger.set_sweep_config(metric_name="validation-accuracy", metric_goal="maximize", hyperparameters=hyperparameters)
     logger.create_sweep()
     logger.set_training_function(tune)
-    logger.run_sweep(count=10)
+    logger.run_sweep(count=20)
 
     # Retrieve the best hyperparameters
     api = wandb.Api()
     runs = api.runs("dlvc_group_13/cnn_tuning")
-    best_run = max(runs, key=lambda run: run.summary.get("accuracy", 0))
+    best_run = max(runs, key=lambda run: run.summary.get("validation-accuracy", 0))
     best_hyperparameters = best_run.config
 
     train(best_hyperparameters)
