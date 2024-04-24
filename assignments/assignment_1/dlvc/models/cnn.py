@@ -1,22 +1,23 @@
 import torch.nn as nn
 
 class YourCNN(nn.Module):
-    def __init__(self):
+    def __init__(self, conv_layer_1_dim, conv_layer_2_dim, conv_layer_3_dim, kernel_size,
+                 mlp_layer_1_dim, mlp_layer_2_dim, dropout_rate):
         super().__init__()
         self.conv = nn.Sequential(
             # First Convolutional Layer
-            nn.Conv2d(3, 16, kernel_size=3, padding=1),
-            nn.BatchNorm2d(16),
+            nn.Conv2d(3, conv_layer_1_dim, kernel_size=kernel_size, padding=1),
+            nn.BatchNorm2d(conv_layer_1_dim),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
             # Second Convolutional Layer
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(conv_layer_1_dim, conv_layer_2_dim, kernel_size=kernel_size, padding=1),
+            nn.BatchNorm2d(conv_layer_2_dim),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
             # Third Convolutional Layer
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(conv_layer_2_dim, conv_layer_3_dim, kernel_size=kernel_size, padding=1),
+            nn.BatchNorm2d(conv_layer_3_dim),
             nn.ReLU(),
             nn.MaxPool2d(2, 2)
         )
@@ -25,15 +26,15 @@ class YourCNN(nn.Module):
 
         self.classifier = nn.Sequential(
             # First Fully Connected Layer
-            nn.Linear(64 * 4 * 4, 256),
+            nn.Linear(conv_layer_3_dim * 4 * 4, mlp_layer_1_dim),
             nn.ReLU(),
             # Second Fully Connected Layer
-            nn.Linear(256, 128),
+            nn.Linear(mlp_layer_1_dim, mlp_layer_2_dim),
             nn.ReLU(),
             # Dropout Layer
-            nn.Dropout(0.5),
+            nn.Dropout(dropout_rate),
             # Output Layer
-            nn.Linear(128, 10),
+            nn.Linear(mlp_layer_2_dim, 10),
             nn.Softmax(dim=1)  # Softmax activation for class probabilities
         )
 
