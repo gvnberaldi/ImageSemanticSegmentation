@@ -70,7 +70,7 @@ def train(config=None):
             mlp_head_number_hidden_layers=config.mlp_head_number_hidden_layers,
             mlp_head_hidden_layers_depth=config.mlp_head_hidden_layers_depth
         )
-        summary(network)
+        summary(network, input_size=(config.batch_size, 3, 32, 32))
 
         optimizer = AdamW(network.parameters(),lr=config.lr, amsgrad=True) if config.optimizer == 'AdamW' else SGD(network.parameters(),lr=config.lr, momentum = 0.9)
 
@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
     parameters_dict = {
         'optimizer': {
-            'values': ['AdamW', 'sgd']
+            'value': 'AdamW'
         },
 
         'scheduler' : {
@@ -128,41 +128,39 @@ if __name__ == "__main__":
         'lr':{
             'distribution': 'log_uniform_values',
             'min': 0.0001,
-            'max': 0.1 
+            'max': 0.95 
         }, 
 
         'gamma':{
-            'distribution': 'uniform',
-            'min': 0.8,
-            'max': 1 
+            'value': 0.9
         },
 
         'patch_size': {
-            'values': [2,4,8,16,32]
+            'values': [4,8]
         },
 
         'embed_dim': {
-            'values': [2**i for i in range(2,6)]
+            'values': [2**i for i in [3,4,5,6,7]]
         },
 
         'num_encoder_layers': {
-            'values': [i+1 for i in range(6)]
+            'value': 3
         },
 
         'number_hidden_layers': {
-            'values': [i+1 for i in range(6)]
+            'values': [1,2,3]
         },
 
         'hidden_layer_depth': {
-            'values': [2**i for i in range(2,6)]
+            'values': [2**i for i in [5,6,7,8,9,10]]
         },
 
         'head_dim': {
-            'values': [2**i for i in range(2,6)]
+            'values': [2**i for i in [2,4,5,6,7,8]]
         },
 
         'num_heads': {
-            'values': [i+1 for i in range(10)]
+            'values': [4,5,6]
         },
 
         'dropout':{
@@ -179,15 +177,15 @@ if __name__ == "__main__":
         #},
 
         'mlp_head_number_hidden_layers': {
-            'values': [i+1 for i in range(6)]
+            'values': [1,2]
         },
 
         'mlp_head_hidden_layers_depth': {
-            'values': [2**i for i in range(2,6)]
+            'values': [2**i for i in [5,6,7,8,9,10]]
         },
 
         'batch_size': {
-            'values': [128,256,512]
+            'value': 256
       }
 
     }
