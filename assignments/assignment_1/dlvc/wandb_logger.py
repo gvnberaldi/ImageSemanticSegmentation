@@ -25,7 +25,7 @@ class WandBLogger:
     def watch(self, model, log_freq: int=1):
         wandb.watch(model, log="all", log_freq=log_freq)
 
-    def log(self, log_dict: dict, commit=True, step=None):
+    def log(self, log_dict: dict, commit=False, step=None):
         if self.enabled:
             if step:
                 wandb.log(log_dict, commit=commit, step=step)

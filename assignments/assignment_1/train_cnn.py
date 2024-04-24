@@ -21,6 +21,7 @@ import wandb
 API_KEY = 'e5e7b3c0c3fbc088d165766e575853c01d6cb305'
 LOGGER = None
 
+
 def get_datasets():
     transform = v2.Compose([v2.ToImage(),
                             v2.ToDtype(torch.float32, scale=True),
@@ -42,7 +43,6 @@ def get_model(hyperparameter):
     cnn = YourCNN(conv_layer_1_dim=hyperparameter['conv_layer_1_dim'],
                   conv_layer_2_dim=hyperparameter['conv_layer_2_dim'],
                   conv_layer_3_dim=hyperparameter['conv_layer_3_dim'],
-                  kernel_size=hyperparameter['kernel_size'],
                   mlp_layer_1_dim=hyperparameter['mlp_layer_1_dim'],
                   mlp_layer_2_dim=hyperparameter['mlp_layer_2_dim'],
                   dropout_rate=hyperparameter['dropout_rate'])
@@ -128,7 +128,6 @@ if __name__ == "__main__":
         'conv_layer_1_dim': [16, 32],
         'conv_layer_2_dim': [32, 64],
         'conv_layer_3_dim': [64, 128],
-        'kernel_size': [3, 5],  # Common kernel sizes
         'mlp_layer_1_dim': [128, 256],
         'mlp_layer_2_dim': [62, 128],
     }
