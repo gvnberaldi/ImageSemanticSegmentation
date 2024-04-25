@@ -11,6 +11,17 @@ class CIFAR10Dataset(ClassificationDataset):
     Custom CIFAR-10 Dataset.
     '''
 
+    _datasets = {}
+
+    # Singleton class
+    def __new__(cls, subset: Subset, *args, **kwargs):
+        if subset in cls._datasets:
+            return cls._datasets[subset]
+
+        instance = super(CIFAR10Dataset, cls).__new__(cls)
+        cls._datasets[subset] = instance
+        return instance
+
     def __init__(self, fdir: str, subset: Subset, transform=None, augmentation_transform=None, augment_probability=0.5):
         '''
         Loads the dataset from a directory fdir that contains the Python version

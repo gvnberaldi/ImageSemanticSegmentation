@@ -135,8 +135,8 @@ def train(best_hyperparameters):
 
 
 if __name__ == "__main__":
-    #logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
-    #LOGGER = logger
+    logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
+    LOGGER = logger
 
     hyperparameters = {
         'batch_size': [128, 256, 512],  # Different batch sizes for experimentation
@@ -160,14 +160,5 @@ if __name__ == "__main__":
     best_run = max(runs, key=lambda run: run.summary.get("Validation Accuracy", 0))
     best_hyperparameters = best_run.config
 
-    train(best_hyperparameters)'''
+    train(best_hyperparameters)
 
-    test_set, _, _ = get_datasets()
-
-    my_dataloader = torch.utils.data.DataLoader(test_set, batch_size=64, shuffle=True)
-
-    # Get the first batch
-    data_iter = iter(my_dataloader)
-    first_batch = next(data_iter)  # This calls __getitem__ internally
-
-    print("First batch:", first_batch)
