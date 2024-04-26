@@ -22,7 +22,7 @@ class CIFAR10Dataset(ClassificationDataset):
         cls._datasets[subset] = instance
         return instance
 
-    def __init__(self, fdir: str, subset: Subset, transform=None, augmentation_transform=None, augment_probability=0.5):
+    def __init__(self, fdir: str, subset: Subset, transform=None):
         '''
         Loads the dataset from a directory fdir that contains the Python version
         of the CIFAR-10, i.e. files "data_batch_1", "test_batch" and so on.
@@ -54,10 +54,14 @@ class CIFAR10Dataset(ClassificationDataset):
         self.classes = ('plane', 'car', 'bird', 'cat',
                         'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
         self.transform = transform
-        self.augmentation_transform = augmentation_transform
-        self.augment_probability = augment_probability
+        self.augmentation_transform = None
+        self.augment_probability = None
         self.subset = subset
         self.images, self.labels = self._load_data()
+
+    def set_augmentation_transform(self, augmentation_transform=None, augment_probability=0.5):
+        self.augmentation_transform = augmentation_transform
+        self.augment_probability = augment_probability
 
     def _load_data(self):
         if self.subset == Subset.TRAINING:

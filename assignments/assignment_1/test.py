@@ -15,14 +15,14 @@ from dlvc.datasets.dataset import Subset
 
 
 def test(args):
-   
-    
+    fdir = "data\\cifar-10-batches-py"
+
     transform = v2.Compose([v2.ToImage(), 
                             v2.ToDtype(torch.float32, scale=True),
                             v2.Normalize(mean = [0.485, 0.456,0.406], std = [0.229, 0.224, 0.225])])
-    
-    test_data = CIFAR10Dataset(...)
-    test_data_loader = ...
+
+    test_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TEST, transform=transform)
+    test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=128, shuffle=False)
         
     device = ...
     num_test_data = len(test_data)

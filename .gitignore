@@ -19,10 +19,6 @@ venv/
 *.pth
 
 /wandb/** */*
-#Saved model weight
-/saved_models/*
-
-/saved_models/model.pth
 
 # User-specific stuff
 .idea/

@@ -1,4 +1,5 @@
 ## Feel free to change the imports according to your implementation and needs
+import os
 from pathlib import Path
 
 import torch
@@ -44,12 +45,12 @@ def get_datasets():
 
     fdir = "data\\cifar-10-batches-py"
 
-    train_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TRAINING, transform=transform,
-                                augmentation_transform=augmentation_transform)
+    train_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TRAINING, transform=transform)
     val_data = CIFAR10Dataset(fdir=fdir, subset=Subset.VALIDATION, transform=transform)
-    test_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TEST, transform=transform)
 
-    return train_data, val_data, test_data
+    train_data.set_augmentation_transform(augmentation_transform=augmentation_transform)
+
+    return train_data, val_data
 
 
 def get_model(hyperparameter):
@@ -66,6 +67,11 @@ def get_model(hyperparameter):
     model = model.to(device)
     summary(model, input_size=(128, 3, 32, 32))
 
+    weight_path = os.path.join(os.getcwd(), 'saved_models\\cnn\\model.pth')
+    if os.path.exists(weight_path):
+        model.load(weight_path)
+        print("Loading model weight...")
+
     return model, device
 
 
@@ -76,7 +82,7 @@ def tune():
         model, device = get_model(config)
         model_save_dir = Path("saved_models\\cnn")
 
-        train_data, val_data, test_data = get_datasets()
+        train_data, val_data = get_datasets()
         train_metric = Accuracy(classes=train_data.classes)
         val_metric = Accuracy(classes=val_data.classes)
         val_frequency = 5
@@ -106,7 +112,7 @@ def train(best_hyperparameters):
     model, device = get_model(best_hyperparameters)
     model_save_dir = Path("saved_models\\cnn")
 
-    train_data, val_data, test_data = get_datasets()
+    train_data, val_data = get_datasets()
     train_metric = Accuracy(classes=train_data.classes)
     val_metric = Accuracy(classes=val_data.classes)
     val_frequency = 5
@@ -135,7 +141,7 @@ def train(best_hyperparameters):
 
 
 if __name__ == "__main__":
-    logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
+    '''logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
     LOGGER = logger
 
     hyperparameters = {
@@ -160,5 +166,4 @@ if __name__ == "__main__":
     best_run = max(runs, key=lambda run: run.summary.get("Validation Accuracy", 0))
     best_hyperparameters = best_run.config
 
-    train(best_hyperparameters)
-
+    train(best_hyperparameters)'''
