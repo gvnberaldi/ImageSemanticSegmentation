@@ -23,31 +23,43 @@ from torchinfo import summary
 
 import wandb
 
-def train(config=None):
+def train(config=None, num_epochs=30):
 
     ### Implement this function so that it trains a specific model as described in the instruction.md file
     ## feel free to change the code snippets given here, they are just to give you an initial structure 
     ## but do not have to be used if you want to do it differently
     ## For device handling you can take a look at pytorch documentation
     
-    with wandb.init(config=config):
+    with wandb.init(config=config, project = 'dlvc_ass_1_vit_sweep'):
         config = wandb.config
 
         #Data 
-        train_transform = v2.Compose([v2.ToImage(), 
-                                v2.ToDtype(torch.float32, scale=True),
-                                v2.Normalize(mean = [0.485, 0.456,0.406], std = [0.229, 0.224, 0.225])])
+
+        augmentation_transform = v2.Compose([
+            v2.ToImage(),
+            # Randomly flip the image horizontally
+            v2.RandomHorizontalFlip(),
+            # Randomly rotate the image
+            v2.RandomRotation(30),
+            # Randomly crop and resize
+            v2.RandomResizedCrop(32, scale=(0.6, 1.0), ratio=(0.8, 1.2)),
+            # Convert the image to a PyTorch tensor
+            v2.ToDtype(torch.float32, scale=True),
+            # Normalize the image with mean and standard deviation
+            v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
         
-        val_transform = v2.Compose([v2.ToImage(), 
+        transform = v2.Compose([v2.ToImage(), 
                                 v2.ToDtype(torch.float32, scale=True),
                                 v2.Normalize(mean = [0.485, 0.456,0.406], std = [0.229, 0.224, 0.225])])
     
 
         fdir = "data\\cifar-10-batches-py"
 
-        train_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TRAINING, transform=train_transform)
-        val_data = CIFAR10Dataset(fdir=fdir, subset=Subset.VALIDATION, transform=val_transform)
-        test_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TEST)
+        train_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TRAINING, transform=transform)
+        train_data.set_augmentation_transform(augmentation_transform=augmentation_transform, augment_probability=config.augmentation_ratio)
+        val_data = CIFAR10Dataset(fdir=fdir, subset=Subset.VALIDATION, transform=transform) 
+        test_data = CIFAR10Dataset(fdir=fdir, subset=Subset.TEST, transform=transform)
     
         
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -80,7 +92,7 @@ def train(config=None):
         val_metric = Accuracy(classes=val_data.classes)
         val_frequency = 5
 
-        model_save_dir = Path("saved_models")
+        model_save_dir = Path("saved_models\\vit")
         model_save_dir.mkdir(exist_ok=True)
 
         lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=config.gamma)
@@ -96,7 +108,7 @@ def train(config=None):
                         train_data,
                         val_data,
                         device,
-                        30, 
+                        num_epochs, 
                         model_save_dir,
                         batch_size=config.batch_size, # feel free to change
                         val_frequency = val_frequency)
@@ -111,8 +123,8 @@ if __name__ == "__main__":
     }
 
     metric = {
-        'name': 'loss',
-        'goal': 'minimize'
+        'name': 'validation-accuracy',
+        'goal': 'maximize'
     }
     sweep_config['metric'] = metric
 
@@ -126,13 +138,11 @@ if __name__ == "__main__":
         },
 
         'lr':{
-            'distribution': 'log_uniform_values',
-            'min': 0.0005,
-            'max': 0.001
+            'value': 0.001
         }, 
 
         'gamma':{
-            'value': 0.9
+            'value': 0.95,
         },
 
         'patch_size': {
@@ -140,7 +150,7 @@ if __name__ == "__main__":
         },
 
         'embed_dim': {
-            'values': [64,128]
+            'value': 32
         },
 
         'num_encoder_layers': {
@@ -152,11 +162,11 @@ if __name__ == "__main__":
         },
 
         'hidden_layer_depth': {
-            'values': [2**i for i in [9,10]]
+            'value': 1024
         },
 
         'head_dim': {
-            'values': [128, 256, 512]
+            'value': 32
         },
 
         'num_heads': {
@@ -164,9 +174,7 @@ if __name__ == "__main__":
         },
 
         'dropout':{
-            'distribution': 'uniform',
-            'min': 0,
-            'max': 0.8 
+            'value': 0
         },
 
 
@@ -185,13 +193,76 @@ if __name__ == "__main__":
         },
 
         'batch_size': {
-            'value': 256
-      }
+            'value': 512
+        },
+
+        'augmentation_ratio': {
+            'value': 1
+        }
 
     }
 
-    sweep_config['parameters'] = parameters_dict
+    config_final  = {
+        'optimizer':  'AdamW'
+        ,
 
-    sweep_id = wandb.sweep(sweep_config, project = 'dlvc_ass_1_vit_sweep')
+        'scheduler' : 'ExponentialLR'
+        ,
 
-    wandb.agent(sweep_id, train, count=100)
+        'lr':0.001
+        , 
+
+        'gamma':0.95,
+        
+
+        'patch_size': 2
+        ,
+
+        'embed_dim': 256
+        ,
+
+        'num_encoder_layers': 3
+        ,
+
+        'number_hidden_layers': 1
+        ,
+
+        'hidden_layer_depth': 1024
+        ,
+
+        'head_dim': 32
+        ,
+
+        'num_heads': 5
+        ,
+
+        'dropout':0
+        ,
+
+
+        #'weight_decay':{
+        #    'distribution': 'log_uniform_values',
+        #    'min': 0.0001,
+        #    'max': 0.1 
+        #},
+
+        'mlp_head_number_hidden_layers': 1
+        ,
+
+        'mlp_head_hidden_layers_depth': 128
+        ,
+
+        'batch_size': 256
+        ,
+
+        'augmentation_ratio': 1
+        }
+
+    #sweep_config['parameters'] = parameters_dict
+
+    #sweep_id = wandb.sweep(sweep_config, project = 'dlvc_ass_1_vit_sweep')
+
+    #wandb.agent(sweep_id, train, count=100)
+
+
+    train(config_final, 120)
