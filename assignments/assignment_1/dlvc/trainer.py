@@ -208,7 +208,7 @@ class ImgClassificationTrainer(BaseTrainer):
                 val_metrics = self._val_epoch(epoch)
                 if val_metrics[1] > best_accuracy:
                     best_accuracy = val_metrics[1]
-                    self.model.save(save_dir=self.training_save_dir, suffix='model.pth')
+                    self.model.save(save_dir=self.training_save_dir, suffix=f'model_val_acc_{best_accuracy}.pth')
 
 
 
