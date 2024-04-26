@@ -37,13 +37,13 @@ def tune():
         model_save_dir = Path("saved_models\\vit")
 
         train_data, val_data, _ = get_datasets()
-        train_data.set_augmentation_probability(augment_probability=config['augmentation_ratio'])
+        #train_data.set_augmentation_probability(augment_probability=config['augmentation_ratio'])
         train_metric = Accuracy(classes=train_data.classes)
         val_metric = Accuracy(classes=val_data.classes)
         val_frequency = 5
 
-        optimizer = AdamW(model.parameters(), lr=config.lr, amsgrad=True) if config.optimizer == 'AdamW' \
-            else SGD(model.parameters(), lr=config.lr, momentum=0.9)
+        optimizer = AdamW(model.parameters(), lr=config.lr, amsgrad=True, weight_decay=config['weight_decay']) if config.optimizer == 'AdamW' \
+            else SGD(model.parameters(), lr=config.lr, momentum=0.9, weight_decay=config['weight_decay'])
 
         loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
         lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=config.gamma)
@@ -70,13 +70,13 @@ def train(best_hyperparameter):
     model_save_dir = Path("saved_models\\vit")
 
     train_data, val_data, _ = get_datasets()
-    train_data.set_augmentation_probability(augment_probability=best_hyperparameters['augmentation_ratio'])
+    #train_data.set_augmentation_probability(augment_probability=best_hyperparameters['augmentation_ratio'])
     train_metric = Accuracy(classes=train_data.classes)
     val_metric = Accuracy(classes=val_data.classes)
     val_frequency = 5
 
-    optimizer = AdamW(model.parameters(), lr=best_hyperparameter['lr'], amsgrad=True) if best_hyperparameter['optimizer'] == 'AdamW' \
-        else SGD(model.parameters(), lr=best_hyperparameter['lr'], momentum=0.9)
+    optimizer = AdamW(model.parameters(), lr=best_hyperparameter['lr'], amsgrad=True, weight_decay=best_hyperparameter['weight_decay']) if best_hyperparameter['optimizer'] == 'AdamW' \
+        else SGD(model.parameters(), lr=best_hyperparameter['lr'], momentum=0.9, weight_decay=best_hyperparameter['weight_decay'])
 
     loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
     lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=best_hyperparameter['gamma'])
@@ -123,24 +123,12 @@ if __name__ == "__main__":
                         'hidden_layer_depth': {'values': [64,128,256,512,1024]},
                         'head_dim': {'values': [8,16,32,64,128]},
                         'num_heads': {'values': [1,2,3,4,5,6,7,8,9,10]},
-                        'dropout':{
-                            'distribution': 'uniform',
-                            'max': 0.8,
-                            'min': 0,
-                        },
+                        'dropout':{'values': [0,0.25,0.5,0.75]},
                         'mlp_head_number_hidden_layers': {'values': [1,2,3,4,5]},
                         'mlp_head_hidden_layers_depth': {'values': [64,128,256,512, 1024]},
                         'batch_size': {'values': [128,256]},
-                        'augmentation_ratio': {
-                            'distribution': 'uniform',
-                            'max': 1,
-                            'min': 0
-                        }
-                        # 'weight_decay':{
-                        #    'distribution': 'log_uniform_values',
-                        #    'min': 0.0001,
-                        #    'max': 0.1
-                        # },
+                        #'augmentation_ratio': {'values': [0,0.25,0.5,0.75,1.0]},
+                        'weight_decay':{'values': [0,0.0001,0.001,0.01,0.1]},
     }
 
     # Create and run the sweep

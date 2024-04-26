@@ -121,10 +121,7 @@ class CIFAR10Dataset(ClassificationDataset):
         if idx < 0 or idx >= len(self.images):
             raise IndexError("Index out of bounds")
         image, label = self.images[idx], self.labels[idx]
-        if self.augmentation_transform and random.random() < self.augment_probability:
-            image = self.augmentation_transform(image)
-        elif self.transform:
-            image = self.transform(image)
+        image = self.transform(image)
         return image, label
 
 
