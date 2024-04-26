@@ -7,17 +7,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from dlvc.metrics import Accuracy
-from dlvc.utils import get_datasets, get_model, get_api_key
+from dlvc.utils import get_datasets, get_cnn_model, get_api_key
 
 import wandb
 
 
 def test(args):
-    fdir = "data\\cifar-10-batches-py"
-
     _, _, test_data = get_datasets()
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=128, shuffle=False)
-
     num_test_data = len(test_data)
 
     wandb.login(key=get_api_key())
@@ -28,7 +25,7 @@ def test(args):
     best_run = max(runs, key=lambda run: run.summary.get("Validation Accuracy", 0))
     best_hyperparameters = best_run.config
 
-    model, device = get_model(best_hyperparameters)
+    model, device = get_cnn_model(best_hyperparameters, os.path.join(os.getcwd(), 'saved_models\\cnn\\model.pth'))
     model.to(device)
     model.eval()
 

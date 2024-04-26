@@ -3,9 +3,6 @@ from typing import Tuple
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from tqdm import tqdm, trange
-from torchinfo import summary
-import wandb
-from dlvc.wandb_logger import WandBLogger
 
 class BaseTrainer(metaclass=ABCMeta):
     '''
@@ -93,12 +90,11 @@ class ImgClassificationTrainer(BaseTrainer):
         self.training_save_dir = training_save_dir
         self.batch_size = batch_size
         self.val_frequency = val_frequency
+        self.logger = logger
 
         # Create data loaders
         self.training_loader = torch.utils.data.DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
         self.validation_loader = torch.utils.data.DataLoader(val_data, batch_size=self.batch_size, shuffle=False)
-
-        self.logger = logger
 
     def _train_epoch(self, epoch_idx: int) -> Tuple[float, float, float]:
         """
@@ -111,8 +107,7 @@ class ImgClassificationTrainer(BaseTrainer):
 
         # Logic mostly from https://pytorch.org/tutorials/beginner/introyt/trainingyt.html
         running_loss = 0.
-        running_accuracy = 0.
-        running_per_class_accuracy = 0.
+        self.train_metric.reset()
 
         for i, data in enumerate(self.training_loader):
             # print(self.model.device)
@@ -124,31 +119,24 @@ class ImgClassificationTrainer(BaseTrainer):
 
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
-
             # Make predictions for this batch
             self.outputs = self.model(inputs)
             # Compute the loss and its gradients
             self.loss = self.loss_fn(self.outputs, labels)
             self.loss.backward()
-
             # Adjust learning weights
             self.optimizer.step()
 
             running_loss += self.loss.item()
+            self.train_metric.update(prediction=self.outputs, target=labels)
 
-            # Get class accuracy
-            self.train_metric.update(prediction = self.outputs, target = labels)
+        print(f"Training metric for epoch: {epoch_idx} \n")
+        print(f'Loss = {running_loss/(i+1)}')
+        print(self.train_metric)
 
-            running_accuracy += self.train_metric.accuracy()
-            running_per_class_accuracy += self.train_metric.per_class_accuracy()
+        self.logger.log({'Train Loss': running_loss/(i+1), 'Train Accuracy': self.train_metric.accuracy(), 'Train Per Class Accuracy': self.train_metric.per_class_accuracy()}, step=epoch_idx, commit=False)
 
-        print(f'Training metrics for epoch {epoch_idx}: Loss={running_loss/(i+1)}, Accuracy = {running_accuracy/(i+1)}, Per Class Accuracy = {running_per_class_accuracy/(i+1)}')
-
-        if self.logger is not None:
-            self.logger.log({'Train Loss': running_loss/(i+1), 'Train Accuracy': running_accuracy/(i+1), 'Train Per Class Accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx, commit=False)
-        else:
-            wandb.log({'train-loss': running_loss/(i+1), 'train-accuracy': running_accuracy/(i+1), 'train per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
-        return running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1)
+        return running_loss/(i+1),  self.train_metric.accuracy(), self.train_metric.per_class_accuracy()
 
     def _val_epoch(self, epoch_idx:int) -> Tuple[float, float, float]:
         """
@@ -160,8 +148,7 @@ class ImgClassificationTrainer(BaseTrainer):
         """
         # Logic mostly from https://pytorch.org/tutorials/beginner/introyt/trainingyt.html
         running_loss = 0.
-        running_accuracy = 0.
-        running_per_class_accuracy = 0.
+        self.val_metric.reset()
 
         with torch.no_grad():
             for i, data in enumerate(self.validation_loader):
@@ -169,26 +156,23 @@ class ImgClassificationTrainer(BaseTrainer):
                 inputs, labels = data
                 inputs = inputs.to(self.device)
                 labels = labels.long().to(self.device)
+
                 # Make predictions for this batch
                 self.outputs = self.model(inputs)
-
                 # Compute the loss
                 self.loss = self.loss_fn(self.outputs, labels)
-
                 running_loss += self.loss.item()
 
                 # Get class accuracy
-                self.val_metric.update(prediction = self.outputs, target = labels)
+                self.val_metric.update(prediction=self.outputs, target=labels)
 
-                running_accuracy += self.val_metric.accuracy()
-                running_per_class_accuracy += self.val_metric.per_class_accuracy()
+        print(f"Validation metric for epoch: {epoch_idx} \n")
+        print(f'Loss = {running_loss / (i + 1)}')
+        print(self.val_metric)
 
-        if self.logger is not None:
-            self.logger.log({'Validation Loss': running_loss/(i+1), 'Validation Accuracy': running_accuracy/(i+1), 'Validation Per Class Accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx, commit=False)
-        else:
-            wandb.log({'loss': running_loss/(i+1),'validation-accuracy': running_accuracy/(i+1), 'validation per class accuracy': running_per_class_accuracy/(i+1)}, step=epoch_idx)
+        self.logger.log({'Validation Loss': running_loss/(i+1), 'Validation Accuracy': self.val_metric.accuracy(), 'Validation Per Class Accuracy': self.val_metric.per_class_accuracy()}, step=epoch_idx, commit=False)
 
-        return running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1)
+        return running_loss/(i+1), self.val_metric.accuracy(), self.val_metric.per_class_accuracy()
 
     def train(self, save = False) -> None:
         """
@@ -208,7 +192,7 @@ class ImgClassificationTrainer(BaseTrainer):
                 val_metrics = self._val_epoch(epoch)
                 if val_metrics[1] > best_accuracy and save:
                     best_accuracy = val_metrics[1]
-                    self.model.save(save_dir=self.training_save_dir, suffix=f'model_val_acc_{best_accuracy}.pth')
+                    self.model.save(save_dir=self.training_save_dir, suffix=f'model.pth')
 
 
 

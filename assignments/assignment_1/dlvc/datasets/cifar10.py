@@ -63,6 +63,9 @@ class CIFAR10Dataset(ClassificationDataset):
         self.augmentation_transform = augmentation_transform
         self.augment_probability = augment_probability
 
+    def set_augmentation_probability(self, augment_probability=0.5):
+        self.augment_probability = augment_probability
+
     def _load_data(self):
         if self.subset == Subset.TRAINING:
             return self._load_train_data()

@@ -26,7 +26,7 @@ class WandBHyperparameterTuning:
                 'goal': metric_goal
             },
             'parameters': {
-                key: {'values': value} for key, value in hyperparameters.items()
+                {'values': value} if type(value) is list else value for key, value in hyperparameters.items()
             }
         }
 
