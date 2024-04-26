@@ -138,43 +138,49 @@ if __name__ == "__main__":
         },
 
         'lr':{
-            'value': 0.001
+            'distribution': 'log_uniform_values',
+            'max': 0.01,
+            'min': 0.0001,
         }, 
 
         'gamma':{
-            'value': 0.95,
+            'distribution': 'uniform',
+            'max': 1,
+            'min': 0.8
         },
 
         'patch_size': {
-            'value': 4
+            'values': [2,4,8,16]
         },
 
         'embed_dim': {
-            'value': 32
+            'values': [16,32,64]
         },
 
         'num_encoder_layers': {
-            'value': 3
+            'values': [1,2,3,4,5]
         },
 
         'number_hidden_layers': {
-            'value': 2
+            'values': [1,2,3]
         },
 
         'hidden_layer_depth': {
-            'value': 1024
+            'values': [64,128,256,512,1024]
         },
 
         'head_dim': {
-            'value': 32
+            'values': [8,16,32,64,128]
         },
 
         'num_heads': {
-            'value': 5
+            'values': [1,2,3,4,5,6,7,8,9,10]
         },
 
         'dropout':{
-            'value': 0
+            'distribution': 'uniform',
+            'max': 0.8,
+            'min': 0,
         },
 
 
@@ -185,19 +191,21 @@ if __name__ == "__main__":
         #},
 
         'mlp_head_number_hidden_layers': {
-            'value': 2
+            'values': [1,2,3,4,5]
         },
 
         'mlp_head_hidden_layers_depth': {
-            'value': 128
+            'values': [64,128,256,512, 1024]
         },
 
         'batch_size': {
-            'value': 512
+            'values': [128,256]
         },
 
         'augmentation_ratio': {
-            'value': 1
+            'distribution': 'uniform',
+            'max': 1,
+            'min': 0
         }
 
     }
@@ -258,11 +266,11 @@ if __name__ == "__main__":
         'augmentation_ratio': 1
         }
 
-    #sweep_config['parameters'] = parameters_dict
+    sweep_config['parameters'] = parameters_dict
 
-    #sweep_id = wandb.sweep(sweep_config, project = 'dlvc_ass_1_vit_sweep')
+    sweep_id = wandb.sweep(sweep_config, project = 'dlvc_ass_1_vit_sweep')
 
-    #wandb.agent(sweep_id, train, count=100)
+    wandb.agent(sweep_id, train, count=100)
 
 
-    train(config_final, 120)
+    #train(config_final, 120)
