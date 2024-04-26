@@ -207,6 +207,7 @@ class VisionTransformer(nn.Module):
 
         out = torch.select(x,1,0).squeeze()
         out = self.mlp_head(out)
+        out = out.softmax(-1)
         return out
 
 

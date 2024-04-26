@@ -128,7 +128,7 @@ class ImgClassificationTrainer(BaseTrainer):
             # Make predictions for this batch
             self.outputs = self.model(inputs)
             # Compute the loss and its gradients
-            self.loss = self.loss_fn(self.outputs.squeeze(), labels)
+            self.loss = self.loss_fn(self.outputs, labels)
             self.loss.backward()
 
             # Adjust learning weights
@@ -137,7 +137,7 @@ class ImgClassificationTrainer(BaseTrainer):
             running_loss += self.loss.item()
 
             # Get class accuracy
-            self.train_metric.update(prediction = self.outputs.squeeze(0).softmax(0), target = labels)
+            self.train_metric.update(prediction = self.outputs, target = labels)
 
             running_accuracy += self.train_metric.accuracy()
             running_per_class_accuracy += self.train_metric.per_class_accuracy()
@@ -190,7 +190,7 @@ class ImgClassificationTrainer(BaseTrainer):
 
         return running_loss/(i+1), running_accuracy/(i+1), running_per_class_accuracy/(i+1)
 
-    def train(self) -> None:
+    def train(self, save = False) -> None:
         """
         Full training logic that loops over num_epochs and
         uses the _train_epoch and _val_epoch methods.
@@ -206,7 +206,7 @@ class ImgClassificationTrainer(BaseTrainer):
             if (epoch+1) % self.val_frequency == 0:
                 self.model.eval()
                 val_metrics = self._val_epoch(epoch)
-                if val_metrics[1] > best_accuracy:
+                if val_metrics[1] > best_accuracy and save:
                     best_accuracy = val_metrics[1]
                     self.model.save(save_dir=self.training_save_dir, suffix=f'model_val_acc_{best_accuracy}.pth')
 
