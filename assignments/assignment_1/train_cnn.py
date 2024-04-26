@@ -141,7 +141,7 @@ def train(best_hyperparameters):
 
 
 if __name__ == "__main__":
-    '''logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
+    logger = WandBHyperparameterTuning(api_key=API_KEY, project_name="cnn_tuning", entity_name="dlvc_group_13")
     LOGGER = logger
 
     hyperparameters = {
@@ -155,10 +155,10 @@ if __name__ == "__main__":
     }
 
     # Create and run the sweep
-    #logger.set_sweep_config(metric_name="Validation Accuracy", metric_goal="maximize", hyperparameters=hyperparameters)
-    #logger.create_sweep()
-    #logger.set_training_function(tune)
-    #logger.run_sweep(count=20)
+    logger.set_sweep_config(metric_name="Validation Accuracy", metric_goal="maximize", hyperparameters=hyperparameters)
+    logger.create_sweep()
+    logger.set_training_function(tune)
+    logger.run_sweep(count=50)
 
     # Retrieve the best hyperparameters
     api = wandb.Api()
@@ -166,4 +166,4 @@ if __name__ == "__main__":
     best_run = max(runs, key=lambda run: run.summary.get("Validation Accuracy", 0))
     best_hyperparameters = best_run.config
 
-    train(best_hyperparameters)'''
+    train(best_hyperparameters)

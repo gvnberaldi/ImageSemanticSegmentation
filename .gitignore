@@ -16,7 +16,7 @@ __pycache__/
 # Virtual Enviroment
 venv/
 
-*.pth
+#*.pth
 
 /wandb/** */*
 
