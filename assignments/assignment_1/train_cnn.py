@@ -158,7 +158,7 @@ if __name__ == "__main__":
     logger.set_sweep_config(metric_name="Validation Accuracy", metric_goal="maximize", hyperparameters=hyperparameters)
     logger.create_sweep()
     logger.set_training_function(tune)
-    logger.run_sweep(count=50)
+    logger.run_sweep(count=20)
 
     # Retrieve the best hyperparameters
     api = wandb.Api()

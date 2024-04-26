@@ -173,12 +173,12 @@ class ImgClassificationTrainer(BaseTrainer):
                 self.outputs = self.model(inputs)
 
                 # Compute the loss
-                self.loss = self.loss_fn(self.outputs.squeeze(), labels)
+                self.loss = self.loss_fn(self.outputs, labels)
 
                 running_loss += self.loss.item()
 
                 # Get class accuracy
-                self.val_metric.update(prediction = self.outputs.squeeze(0).softmax(0), target = labels)
+                self.val_metric.update(prediction = self.outputs, target = labels)
 
                 running_accuracy += self.val_metric.accuracy()
                 running_per_class_accuracy += self.val_metric.per_class_accuracy()
