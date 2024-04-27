@@ -96,3 +96,5 @@ def get_vit_model(hyperparameter):
     model = DeepClassifier(vit)
     model = model.to(device)
     summary(model, input_size=(hyperparameter['batch_size'], 3, 32, 32))
+
+    return model, device
