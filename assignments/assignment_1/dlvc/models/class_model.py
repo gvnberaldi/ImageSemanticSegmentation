@@ -25,4 +25,5 @@ class DeepClassifier(nn.Module):
         Does not work with transfer model
         '''
         
-        self.load_state_dict(torch.load(path))
+        self.load_state_dict(torch.load(path,
+                                        map_location=torch.device('gpu') if torch.cuda.is_available() else torch.device('cpu')))
