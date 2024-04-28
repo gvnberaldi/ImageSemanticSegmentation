@@ -3,6 +3,7 @@ import argparse
 import os
 import torch
 from torchvision.models import resnet18
+from torchvision import utils
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -14,6 +15,17 @@ from dlvc.utils import get_datasets, get_cnn_model, get_api_key
 
 import wandb
 
+#Code from https://stackoverflow.com/questions/55594969/how-to-visualise-filters-in-a-cnn-with-pytorch
+def visTensor(tensor, ch=0, allkernels=False, nrow=8, padding=1): 
+    n,c,w,h = tensor.shape
+
+    if allkernels: tensor = tensor.view(n*c, -1, w, h)
+    elif c != 3: tensor = tensor[:,ch,:,:].unsqueeze(dim=1)
+
+    rows = np.min((tensor.shape[0] // nrow + 1, 64))    
+    grid = utils.make_grid(tensor, nrow=nrow, normalize=True, padding=padding)
+    plt.figure( figsize=(nrow,rows) )
+    plt.imshow(grid.numpy().transpose((1, 2, 0)))
 
 def test(args):
     wandb.login(key=get_api_key())
@@ -58,6 +70,15 @@ def test(args):
 
     loss_fn = torch.nn.CrossEntropyLoss()
     test_metric = Accuracy(classes=test_data.classes)
+
+    #Printing weights
+    filter = cnn.net.conv[0].weight.data.clone()
+    print(filter.shape)
+    visTensor(filter, ch=0, allkernels=False)
+    plt.axis('off')
+    plt.ioff()
+    plt.show()
+
 
     for model_name, model in models.items():
         total_loss = 0.0
