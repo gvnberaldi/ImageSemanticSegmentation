@@ -81,7 +81,6 @@ def get_vit_model(hyperparameter):
             in_chans=3,
             embed_dim=hyperparameter['embed_dim'],
             num_encoder_layers=hyperparameter['num_encoder_layers'],
-            number_hidden_layers=hyperparameter['number_hidden_layers'],
             hidden_layer_depth=hyperparameter['hidden_layer_depth'],
             head_dim=hyperparameter['head_dim'],
             num_heads = hyperparameter['num_heads'],
@@ -89,7 +88,6 @@ def get_vit_model(hyperparameter):
             activation_function=nn.GELU,
             dropout=hyperparameter['dropout'],
             num_classes = 10,
-            mlp_head_number_hidden_layers=hyperparameter['mlp_head_number_hidden_layers'],
             mlp_head_hidden_layers_depth=hyperparameter['mlp_head_hidden_layers_depth']
         )
 

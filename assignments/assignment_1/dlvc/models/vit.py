@@ -60,8 +60,7 @@ class PositionalEncoding(nn.Module):
 class MLP(nn.Module):
     def __init__(
             self, 
-            input_dim, 
-            number_hidden_layers, 
+            input_dim,  
             hidden_layer_depth, 
             output_dim, 
             activation_function=nn.GELU, 
@@ -71,17 +70,10 @@ class MLP(nn.Module):
         self.drop = nn.Dropout(dropout)
         self.fc_first = nn.Linear(input_dim, hidden_layer_depth)
         self.fc_last = nn.Linear(hidden_layer_depth, output_dim)
-        self.layers = nn.ModuleList(
-            [nn.Linear(hidden_layer_depth,hidden_layer_depth) for i in range(number_hidden_layers-1)]
-            )
     def forward(self,x):
         x = self.fc_first(x)
         x = self.act(x)
         x = self.drop(x)
-        for layer in self.layers:
-            x = layer(x)
-            x = self.act(x)
-            x = self.drop(x)
         x = self.fc_last(x)
         x = self.act(x)
         return x
@@ -121,8 +113,7 @@ class TransformerEncoder(nn.Module):
     """
     def __init__(
             self, 
-            input_dim,
-            number_hidden_layers, 
+            input_dim, 
             hidden_layer_depth,
             head_dim,
             num_heads,
@@ -139,7 +130,7 @@ class TransformerEncoder(nn.Module):
             [Attention(input_dim, head_dim) for i in range(num_heads)]
         )
         self.norm2 = norm_layer(input_dim)
-        self.mlp = MLP(input_dim,number_hidden_layers,hidden_layer_depth,input_dim, activation_function, dropout)
+        self.mlp = MLP(input_dim,hidden_layer_depth,input_dim, activation_function, dropout)
 
     def forward(self,x):
         out = self.norm1(x)
@@ -160,7 +151,6 @@ class VisionTransformer(nn.Module):
             in_chans,
             embed_dim,
             num_encoder_layers,
-            number_hidden_layers,
             hidden_layer_depth,
             head_dim,
             num_heads,
@@ -168,7 +158,6 @@ class VisionTransformer(nn.Module):
             activation_function,
             dropout,
             num_classes,
-            mlp_head_number_hidden_layers,
             mlp_head_hidden_layers_depth
             ):
         super().__init__()
@@ -180,7 +169,6 @@ class VisionTransformer(nn.Module):
             [
                 TransformerEncoder(
                     embed_dim,
-                    number_hidden_layers,
                     hidden_layer_depth,
                     head_dim,
                     num_heads,
@@ -192,7 +180,7 @@ class VisionTransformer(nn.Module):
             ]
         )
 
-        self.mlp_head = MLP(embed_dim, mlp_head_number_hidden_layers, mlp_head_hidden_layers_depth, num_classes, activation_function, dropout)
+        self.mlp_head = MLP(embed_dim, mlp_head_hidden_layers_depth, num_classes, activation_function, dropout)
 
     def forward(self,x):
         B, nc, w, h = x.shape
@@ -204,7 +192,6 @@ class VisionTransformer(nn.Module):
         x = path_pos_embed
         for block in self.blocks:
             x = block(x)
-
         out = torch.select(x,1,0).squeeze()
         out = self.mlp_head(out)
         out = out.softmax(-1)
