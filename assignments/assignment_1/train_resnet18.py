@@ -71,6 +71,6 @@ if __name__ == "__main__":
         args = args.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     args.gpu_id = 0 
-    args.num_epochs = 30
+    args.num_epochs = 60
 
     train(args)
