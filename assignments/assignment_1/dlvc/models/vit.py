@@ -83,7 +83,7 @@ class Attention(nn.Module):
             self,
             dim,
             head_dim
-            ):
+            ):  
         super().__init__()
         self.dim = dim
         self.head_dim = head_dim
@@ -161,6 +161,7 @@ class VisionTransformer(nn.Module):
             mlp_head_hidden_layers_depth
             ):
         super().__init__()
+        self.embed_dim = embed_dim
         self.patch_embed = PatchEmbed(img_size=img_size,patch_size=patch_size,in_chans=in_chans, embed_dim=embed_dim)
         self.cls_embed = ClassEmbedding(embed_dim=embed_dim)
         self.pos_embed = PositionalEncoding(self.patch_embed.num_patches, embed_dim)
@@ -185,8 +186,8 @@ class VisionTransformer(nn.Module):
     def forward(self,x):
         B, nc, w, h = x.shape
         image_embeddings = self.patch_embed(x) #B x N x ED
-        cls_embedding = self.cls_embed() # 1 x ED
-        embeddings = torch.cat((cls_embedding.unsqueeze(0).repeat(B,1,1), image_embeddings), dim = 1)
+        cls_embedding = torch.zeros(B,1, self.embed_dim).to(x.device)
+        embeddings = torch.cat((cls_embedding, image_embeddings), dim = 1)
         path_pos_embed = torch.add(embeddings, self.pos_embed(embeddings)) #B x N+1 x ED
 
         x = path_pos_embed
