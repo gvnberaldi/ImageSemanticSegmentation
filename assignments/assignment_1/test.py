@@ -11,7 +11,7 @@ import numpy as np
 
 from dlvc.metrics import Accuracy
 from dlvc.models.class_model import DeepClassifier
-from dlvc.utils import get_datasets, get_cnn_model, get_api_key
+from dlvc.utils import get_datasets, get_cnn_model, get_api_key, get_vit_model
 
 import wandb
 
@@ -42,16 +42,16 @@ def test(args):
     cnn.to(device)
     cnn.eval()
 
-    '''
+    
     # Instantiate ViT
     runs = api.runs("dlvc_group_13/vit_tuning")
     best_run = max(runs, key=lambda run: run.summary.get("Validation Accuracy", 0))
     best_hyperparameters = best_run.config
-
-    vit, _ = get_vit_model(best_hyperparameters, os.path.join(os.getcwd(), 'saved_models\\vit\\model.pth'))
+    print(best_hyperparameters)
+    vit, device = get_vit_model(best_hyperparameters, os.path.join(os.getcwd(), 'saved_models\\vit\\model.pth'))
     vit.to(device)
     vit.eval()
-    '''
+    
 
     # ResNet model
     resnet = resnet18()
@@ -63,7 +63,7 @@ def test(args):
 
     models['CNN'] = cnn
     models['ResNet'] = resnet
-    # models['ViT'] = vit
+    models['ViT'] = vit
 
     _, _, test_data = get_datasets()
     test_data_loader = torch.utils.data.DataLoader(test_data, batch_size=128, shuffle=False)

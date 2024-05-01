@@ -71,7 +71,7 @@ def get_cnn_model(hyperparameter, weight_path = None):
     return model, device
 
 
-def get_vit_model(hyperparameter):
+def get_vit_model(hyperparameter, weight_path = None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
@@ -94,5 +94,7 @@ def get_vit_model(hyperparameter):
     model = DeepClassifier(vit)
     model = model.to(device)
     summary(model, input_size=(hyperparameter['batch_size'], 3, 32, 32))
-
+    if weight_path and os.path.exists(weight_path):
+        model.load(weight_path)
+        print("Loading model weight...")
     return model, device
