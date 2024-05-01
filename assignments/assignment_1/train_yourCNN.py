@@ -23,7 +23,7 @@ def tune():
         model_save_dir = Path("saved_models\\cnn")
 
         train_data, val_data, _ = get_datasets()
-        #train_data.set_augmentation_probability(augment_probability=config['augmentation_ratio'])
+        train_data.set_augmentation_probability(augment_probability=config['augmentation_ratio'])
         train_metric = Accuracy(classes=train_data.classes)
         val_metric = Accuracy(classes=val_data.classes)
         val_frequency = 5
@@ -54,7 +54,7 @@ def train(best_hyperparameters):
     model_save_dir = Path("saved_models\\cnn")
 
     train_data, val_data, _ = get_datasets()
-    #train_data.set_augmentation_probability(augment_probability=best_hyperparameters['augmentation_ratio'])
+    train_data.set_augmentation_probability(augment_probability=best_hyperparameters['augmentation_ratio'])
     train_metric = Accuracy(classes=train_data.classes)
     val_metric = Accuracy(classes=val_data.classes)
     val_frequency = 5
@@ -95,11 +95,11 @@ if __name__ == "__main__":
         'conv_layer_3_dim': [64, 128],
         'mlp_layer_1_dim': [128, 256],
         'mlp_layer_2_dim': [62, 128],
-        # 'augmentation_ratio': {
-        #    'distribution': 'uniform',
-        #    'max': 1,
-        #    'min': 0
-        #}
+        'augmentation_ratio': {
+            'distribution': 'uniform',
+            'max': 1,
+            'min': 0
+        }
     }
 
     # Create and run the sweep
