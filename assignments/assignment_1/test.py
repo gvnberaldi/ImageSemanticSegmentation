@@ -37,21 +37,17 @@ def test(args):
     runs = api.runs("dlvc_group_13/cnn_tuning")
     best_run = max(runs, key=lambda run: run.summary.get("Validation Accuracy", 0))
     best_hyperparameters = best_run.config
-
     cnn, device = get_cnn_model(best_hyperparameters, os.path.join(os.getcwd(), 'saved_models\\cnn\\model.pth'))
     cnn.to(device)
     cnn.eval()
-
     
-    # Instantiate ViT
+    # ViT model
     runs = api.runs("dlvc_group_13/vit_tuning")
     best_run = max(runs, key=lambda run: run.summary.get("Validation Accuracy", 0))
     best_hyperparameters = best_run.config
-    print(best_hyperparameters)
     vit, device = get_vit_model(best_hyperparameters, os.path.join(os.getcwd(), 'saved_models\\vit\\model.pth'))
     vit.to(device)
     vit.eval()
-    
 
     # ResNet model
     resnet = resnet18()
@@ -61,8 +57,8 @@ def test(args):
     resnet.to(device)
     resnet.eval()
 
-    models['CNN'] = cnn
     models['ResNet'] = resnet
+    models['CNN'] = cnn
     models['ViT'] = vit
 
     _, _, test_data = get_datasets()
@@ -71,14 +67,13 @@ def test(args):
     loss_fn = torch.nn.CrossEntropyLoss()
     test_metric = Accuracy(classes=test_data.classes)
 
-    #Printing weights
+    # Printing weights
     filter = cnn.net.conv[0].weight.data.clone()
     print(filter.shape)
     visTensor(filter, ch=0, allkernels=False)
     plt.axis('off')
     plt.ioff()
     plt.show()
-
 
     for model_name, model in models.items():
         total_loss = 0.0
@@ -99,6 +94,7 @@ def test(args):
 
                 # Compute accuracy
                 test_metric.update(prediction=outputs, target=labels)
+
                 # Collect predictions and labels
                 prediction_list.append(outputs)
                 all_labels.extend(labels.cpu().numpy())
