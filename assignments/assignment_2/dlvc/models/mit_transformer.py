@@ -175,7 +175,8 @@ class OverlapPatchEmbed(nn.Module):
         
         # compute the new H an W given the original image size and the patchsize 
         # (we only look at quadratic patches meaning patch_size is same for H and W)
-        self.H, self.W = img_size//patch_size, img_size//patch_size
+        patch_num_per_dim = (img_size-patch_size+2*(patch_size//2))//stride + 1 #Account for different stride length, this is never used and also wrong in the reference repo
+        self.H, self.W = patch_num_per_dim, patch_num_per_dim
         # compute the number of patches given the new H and W
         self.num_patches = self.H * self.W
         
