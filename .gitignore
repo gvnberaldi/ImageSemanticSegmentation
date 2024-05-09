@@ -9,6 +9,8 @@ wandb/
 
 __pycache__/
 
+*.zip
+
 # Test Main and output
 #test_main.py
 #test_1.png
