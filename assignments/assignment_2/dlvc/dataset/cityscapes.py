@@ -1,13 +1,15 @@
 from collections import namedtuple
 from torchvision.datasets import Cityscapes
 
+
 CityscapesLabels = namedtuple(
         "CityscapesLabels",
         ["name", "id", "color"],
     )
+
+
 class CityscapesCustom(Cityscapes):
-     classes_seg = [
-        
+    classes_seg = [
         CityscapesLabels("road",  0,  (128, 64, 128)),
         CityscapesLabels("sidewalk", 1,  (244, 35, 232)),
         CityscapesLabels("building",  2,  (70, 70, 70)),
@@ -28,13 +30,14 @@ class CityscapesCustom(Cityscapes):
         CityscapesLabels("motorcycle",  17,  (0, 0, 230)),
         CityscapesLabels("bicycle",  18,  (119, 11, 32))
     ]
-     def _get_target_suffix(self, mode: str, target_type: str) -> str:
+
+    def _get_target_suffix(self, mode: str, target_type: str) -> str:
         if target_type == "instance":
             return f"{mode}_instanceIds.png"
         elif target_type == "semantic":
-            #return f"{mode}_labelIds.png"
+            # return f"{mode}_labelIds.png"
             return f"{mode}_labelTrainIds.png"
-       
+
         elif target_type == "color":
             return f"{mode}_color.png"
         else:

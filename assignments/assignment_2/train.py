@@ -12,7 +12,6 @@ from dlvc.metrics import SegMetrics
 from dlvc.trainer import ImgSemSegTrainer
 
 
-
 def train(args):
 
     train_transform = v2.Compose([v2.ToImage(), 
@@ -31,21 +30,20 @@ def train(args):
                             v2.ToDtype(torch.long, scale=False),
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST)])
 
-    train_data = OxfordPetsCustom(root="path_to_dataset", 
+    dataset_path = os.path.join(os.path.dirname(__file__), 'data\\oxfordpets')
+    train_data = OxfordPetsCustom(root=dataset_path,
                             split="trainval",
                             target_types='segmentation', 
                             transform=train_transform,
                             target_transform=train_transform2,
                             download=True)
 
-    val_data = OxfordPetsCustom(root="path_to_dataset", 
+    val_data = OxfordPetsCustom(root=dataset_path,
                             split="test",
                             target_types='segmentation', 
                             transform=val_transform,
                             target_transform=val_transform2,
                             download=True)
-
-
 
     device = ...
 

@@ -34,27 +34,29 @@ def train(args):
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST)])
 
     if args.dataset == "oxford":
-        train_data = OxfordPetsCustom(root="path_to_dataset", 
+        dataset_path = os.path.join(os.path.dirname(__file__), 'data\\oxfordpets')
+        train_data = OxfordPetsCustom(root=dataset_path,
                                 split="trainval",
                                 target_types='segmentation', 
                                 transform=train_transform,
                                 target_transform=train_transform2,
                                 download=True)
 
-        val_data = OxfordPetsCustom(root="path_to_dataset", 
+        val_data = OxfordPetsCustom(root=dataset_path,
                                 split="test",
                                 target_types='segmentation', 
                                 transform=val_transform,
                                 target_transform=val_transform2,
                                 download=True)
     if args.dataset == "city":
-        train_data = CityscapesCustom(root="path_to_dataset", 
+        dataset_path = os.path.join(os.path.dirname(__file__), 'data\\cityscapes')
+        train_data = CityscapesCustom(root=dataset_path,
                                 split="train",
                                 mode="fine",
                                 target_type='semantic', 
                                 transform=train_transform,
                                 target_transform=train_transform2)
-        val_data = CityscapesCustom(root="/data/databases/cityscapes", 
+        val_data = CityscapesCustom(root=dataset_path, 
                                 split="val",
                                 mode="fine",
                                 target_type='semantic', 
