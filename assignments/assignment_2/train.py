@@ -11,6 +11,10 @@ from dlvc.dataset.oxfordpets import  OxfordPetsCustom
 from dlvc.metrics import SegMetrics
 from dlvc.trainer import ImgSemSegTrainer
 
+from torchinfo import summary
+
+
+from torch.profiler import profile, record_function, ProfilerActivity
 
 def train(args):
 
@@ -45,11 +49,14 @@ def train(args):
                             target_transform=val_transform2,
                             download=True)
 
-    device = ...
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = DeepSegmenter(...)
-    optimizer = ...
-    loss_fn = ...
+    model = DeepSegmenter(fcn_resnet50(weights=None, num_classes=3))
+    model.to(device)
+    summary(model, (64,3, 64, 64))
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
+    loss_fn = torch.nn.CrossEntropyLoss()
     
     train_metric = SegMetrics(classes=train_data.classes_seg)
     val_metric = SegMetrics(classes=val_data.classes_seg)
@@ -58,8 +65,8 @@ def train(args):
     model_save_dir = Path("saved_models")
     model_save_dir.mkdir(exist_ok=True)
 
-    lr_scheduler = ...
-    
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
+
     trainer = ImgSemSegTrainer(model, 
                     optimizer,
                     loss_fn,
@@ -69,11 +76,15 @@ def train(args):
                     train_data,
                     val_data,
                     device,
-                    args.num_epochs, 
+                    1, 
                     model_save_dir,
                     batch_size=64,
                     val_frequency = val_frequency)
+    
+    #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
     trainer.train()
+
+    #prof.export_chrome_trace("trace.json")
 
     # see Reference implementation of ImgSemSegTrainer
     # just comment if not used
@@ -88,7 +99,7 @@ if __name__ == "__main__":
         args = args.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     args.gpu_id = 0
-    args.num_epochs = 31
+    args.num_epochs = 30
 
 
     train(args)
