@@ -72,14 +72,16 @@ class SegMetrics(PerformanceMeasure):
         # Get the predicted classes by taking the argmax over the class dimension
         # Shape of pred_classes: (s, h, w)
         pred_classes = prediction.argmax(dim=1)
+        # valid_mask: Valid pixels (where target is not equal to 255)
+        valid_mask = target != 255
 
         # Iterate over each class to calculate intersection and union per class
         for cls in range(len(self.classes)):
             # Create binary masks for the current class
             # pred_mask: Pixels predicted as the current class
             # true_mask: Pixels labeled as the current class
-            pred_mask = (pred_classes == cls)
-            true_mask = (target == cls)
+            pred_mask = (pred_classes == cls) & valid_mask
+            true_mask = (target == cls) & valid_mask
 
             # Calculate the intersection and union for the current class
             # Intersection: Pixels where both masks are True (True Positive)
