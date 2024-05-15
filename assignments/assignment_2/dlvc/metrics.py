@@ -1,3 +1,4 @@
+import time
 from abc import ABCMeta, abstractmethod
 import torch
 
@@ -39,14 +40,16 @@ class SegMetrics(PerformanceMeasure):
 
     def __init__(self, classes):
         self.classes = classes
-        self.confusion_matrix = torch.zeros(len(self.classes), len(self.classes))
+        self.intersection = torch.zeros(len(self.classes), dtype=torch.float32)
+        self.union = torch.zeros(len(self.classes), dtype=torch.float32)
         self.reset()
 
     def reset(self) -> None:
         '''
         Resets the internal state.
         '''
-        self.confusion_matrix = torch.zeros(len(self.classes), len(self.classes))
+        self.intersection = torch.zeros(len(self.classes), dtype=torch.float32)
+        self.union = torch.zeros(len(self.classes), dtype=torch.float32)
 
     def update(self, prediction: torch.Tensor, target: torch.Tensor) -> None:
         '''
@@ -54,7 +57,7 @@ class SegMetrics(PerformanceMeasure):
         prediction must have shape (b,c,h,w) where b=batchsize, c=num_classes, h=height, w=width.
         target must have shape (b,h,w) and values between 0 and c-1 (true class labels).
         Raises ValueError if the data shape or values are unsupported.
-        Make sure to not include pixels of value 255 in the calculation since those are to be ignored. 
+        Make sure to not include pixels of value 255 in the calculation since those are to be ignored.
         '''
 
         # Check if prediction and target have compatible shapes
@@ -64,15 +67,28 @@ class SegMetrics(PerformanceMeasure):
             raise ValueError(
                 "Prediction and target shapes do not match or are incompatible with the number of classes.")
 
-        # Iterate over each pixel updating the confusion matrix
-        for i in range(prediction.shape[0]):  # iterate over batch size
-            for j in range(prediction.shape[2]):  # iterate over height
-                for k in range(prediction.shape[3]):  # iterate over width
-                    pred_pixel = prediction[i, :, j, k]  # prediction for each class
-                    true_label = int(target[i, j, k])  # ground truth label
-                    if true_label != 255:  # ignore pixel with value 255
-                        pred_label = torch.argmax(pred_pixel)  # predicted class for pixel (j,k)
-                        self.confusion_matrix[true_label, pred_label] += 1
+        start_time = time.time()  # Record the start time
+
+        # Get the predicted classes by taking the argmax over the class dimension
+        # Shape of pred_classes: (s, h, w)
+        pred_classes = prediction.argmax(dim=1)
+
+        # Iterate over each class to calculate intersection and union per class
+        for cls in range(len(self.classes)):
+            # Create binary masks for the current class
+            # pred_mask: Pixels predicted as the current class
+            # true_mask: Pixels labeled as the current class
+            pred_mask = (pred_classes == cls)
+            true_mask = (target == cls)
+
+            # Calculate the intersection and union for the current class
+            # Intersection: Pixels where both masks are True (True Positive)
+            # Union: Pixels where at least one mask is True (True Positive + False Positive + False Negative)
+            self.intersection[cls] += torch.sum(pred_mask & true_mask).item()
+            self.union[cls] += torch.sum(pred_mask | true_mask).item()
+
+        end_time = time.time()  # Record the end time
+        print(f"Time taken by new update: {end_time - start_time:.6f} seconds")
 
     def __str__(self):
         '''
@@ -80,18 +96,19 @@ class SegMetrics(PerformanceMeasure):
         e.g. "mIou: 0.54"
         '''
         return f"mIou: {self.mIoU():.2f}"
-    
-    def mIoU(self) -> float:
+
+    def mIoU(self):
         '''
         Compute and return the mean IoU as a float between 0 and 1.
         Returns 0 if no data is available (after resets).
         If the denominator for IoU calculation for one of the classes is 0,
         use 0 as IoU for this class.
         '''
-        intersection = torch.diag(self.confusion_matrix)
-        union = self.confusion_matrix.sum(dim=0) + self.confusion_matrix.sum(dim=1) - intersection
-        iou = intersection / union
+
+        # Calculate IoU for each class
+        iou = self.intersection / self.union
         iou[torch.isnan(iou)] = 0  # Handle division by zero
+        # Compute the mean IoU across all classes
         return iou.mean().item()
 
 

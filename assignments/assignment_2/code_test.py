@@ -2,11 +2,11 @@ import os
 
 import numpy as np
 import torch
-from matplotlib.colors import ListedColormap
 from torchvision.transforms import v2
 import matplotlib.pyplot as plt
 
-from dlvc.dataset.oxfordpets import OxfordPetsCustom
+from assignments.assignment_2.dlvc.metrics import SegMetrics
+from dlvc.dataset.oxfordpets import OxfordPetsCustom, OxfordpetsLabels
 from dlvc.dataset.cityscapes import CityscapesCustom
 
 
@@ -109,22 +109,30 @@ def datasets_test():
     plot_images_and_labels(train_loader)
 
 
-def mIoU_test():
-    confusion_matrix = torch.tensor([[10, 2, 3],
-                                     [1, 15, 5],
-                                     [2, 3, 20]])
-    intersection = torch.diag(confusion_matrix)
-    print(f'Intersection = {intersection}')
-    union = confusion_matrix.sum(dim=0) + confusion_matrix.sum(dim=1) - intersection
-    print(f'Union = {union}')
-    iou = intersection / union
-    print(f'IoU = {iou}')
-    iou[torch.isnan(iou)] = 0  # Handle division by zero
-    print(f'mIoU = {iou.mean().item():.2f}')
+def test_metric():
+    classes_seg = [
+        OxfordpetsLabels("pet", 0),
+        OxfordpetsLabels("background", 1),
+        OxfordpetsLabels("border", 2)
+    ]
+    batch_size = 128
+    image_shape = (64, 64)
+    metric = SegMetrics(classes=classes_seg)
+
+    predictions = torch.randn(batch_size, len(classes_seg), image_shape[0], image_shape[1])
+    labels = torch.randint(0, 3, (batch_size, image_shape[0], image_shape[1]))
+
+    print(f'Predictions shape: {predictions.shape}')
+    print(f'Labels shape: {labels.shape}')
+
+    # Update metric with predictions and labels
+    metric.update(predictions, labels)
+    print(f"mIoU: {metric.mIoU()}")
+    metric.reset()
 
 
 if __name__ == "__main__":
-    datasets_test()
-    # mIoU_test()
+    # datasets_test()
+    test_metric()
 
 
