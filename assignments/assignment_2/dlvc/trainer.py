@@ -56,7 +56,8 @@ class ImgSemSegTrainer(BaseTrainer):
                  num_epochs: int, 
                  training_save_dir: Path,
                  batch_size: int = 4,
-                 val_frequency: int = 5):
+                 val_frequency: int = 5,
+                 run_name: str = None):
         '''
         Args and Kwargs:
             model (nn.Module): Deep Network to train
@@ -111,7 +112,10 @@ class ImgSemSegTrainer(BaseTrainer):
         self.num_val_data = len(val_data)
 
         self.checkpoint_dir = training_save_dir
-        self.wandb_logger = WandBLogger(enabled=True, model=model, run_name=model.net._get_name())
+        if run_name is None:
+            run_name = model.net._get_name()
+
+        self.wandb_logger = WandBLogger(enabled=True, model=model, run_name=run_name)
         
 
     def _train_epoch(self, epoch_idx: int) -> Tuple[float, float]:
@@ -128,11 +132,11 @@ class ImgSemSegTrainer(BaseTrainer):
 
         # train epoch
 
-        time_old = time.time()
+        #time_old = time.time()
         for i, batch in tqdm(enumerate(self.train_data_loader), desc="train", total=len(self.train_data_loader)):
             # Zero your gradients for every batch!
-            time_new = time.time()
-            print(f"getting batch {i} took time {time_new-time_old}")
+            #time_new = time.time()
+            #print(f"getting batch {i} took time {time_new-time_old}")
 
             self.optimizer.zero_grad()
 
@@ -145,26 +149,26 @@ class ImgSemSegTrainer(BaseTrainer):
             batch_size = inputs.shape[0] # b x ..?
 
             # Make predictions for this batch
-            time_old = time.time()
+            #time_old = time.time()
             outputs = self.model(inputs.to(self.device))
-            time_new = time.time()
-            print(f"predictions made {i} took time {time_new-time_old}")
+            #time_new = time.time()
+            #print(f"predictions made {i} took time {time_new-time_old}")
             if isinstance(outputs, collections.OrderedDict):
                 outputs = outputs['out']
             # Calculate loss
 
-            time_old = time.time()
+            #time_old = time.time()
             loss = self.loss_fn(outputs, labels.to(self.device))
             loss.backward()
-            time_new = time.time()
-            print(f"loss calculated {i} took time {time_new-time_old}")
+            #time_new = time.time()
+            #print(f"loss calculated {i} took time {time_new-time_old}")
 
 
             # Adjust learning weights
-            time_old = time.time()
+            #time_old = time.time()
             self.optimizer.step()
-            time_new = time.time()
-            print(f"optimizer step {i} took time {time_new-time_old}")
+            #time_new = time.time()
+            #print(f"optimizer step {i} took time {time_new-time_old}")
 
 
 
@@ -172,10 +176,10 @@ class ImgSemSegTrainer(BaseTrainer):
             epoch_loss += (loss.item() * batch_size)
 
 
-            time_old = time.time()
+            #time_old = time.time()
             self.train_metric.update(outputs.detach().cpu(), labels.detach().cpu())
-            time_new = time.time()
-            print(f"metrics updated {i} took time {time_new-time_old}")
+            #time_new = time.time()
+            #print(f"metrics updated {i} took time {time_new-time_old}")
 
             time_old = time.time()
 
