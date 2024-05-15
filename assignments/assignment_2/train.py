@@ -51,6 +51,8 @@ def train(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    
+    # Training from scratch
     model = DeepSegmenter(fcn_resnet50(weights=None, num_classes=3))
     model.to(device)
     summary(model, (64,3, 64, 64))
@@ -62,7 +64,7 @@ def train(args):
     val_metric = SegMetrics(classes=val_data.classes_seg)
     val_frequency = 2
 
-    model_save_dir = Path("saved_models")
+    model_save_dir = Path("saved_models/from_scratch")
     model_save_dir.mkdir(exist_ok=True)
 
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
@@ -76,10 +78,11 @@ def train(args):
                     train_data,
                     val_data,
                     device,
-                    1, 
+                    args.num_epochs, 
                     model_save_dir,
                     batch_size=64,
-                    val_frequency = val_frequency)
+                    val_frequency = val_frequency,
+                    run_name="FCN_from-scratch")
     
     #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
     trainer.train()
@@ -88,7 +91,94 @@ def train(args):
 
     # see Reference implementation of ImgSemSegTrainer
     # just comment if not used
-    trainer.dispose() 
+    trainer.dispose()
+
+    # pretrained weights
+
+    model = DeepSegmenter(fcn_resnet50(weights_backbone='DEFAULT', num_classes=3))
+    model.to(device)
+    summary(model, (64,3, 64, 64))
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    
+    train_metric = SegMetrics(classes=train_data.classes_seg)
+    val_metric = SegMetrics(classes=val_data.classes_seg)
+    val_frequency = 2
+
+    model_save_dir = Path("saved_models/pretrained")
+    model_save_dir.mkdir(exist_ok=True)
+
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
+
+    trainer = ImgSemSegTrainer(model, 
+                    optimizer,
+                    loss_fn,
+                    lr_scheduler,
+                    train_metric,
+                    val_metric,
+                    train_data,
+                    val_data,
+                    device,
+                    args.num_epochs, 
+                    model_save_dir,
+                    batch_size=64,
+                    val_frequency = val_frequency,
+                    run_name = "FCN")
+    
+    #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+    trainer.train()
+
+    #prof.export_chrome_trace("trace.json")
+
+    # see Reference implementation of ImgSemSegTrainer
+    # just comment if not used
+    trainer.dispose()
+    
+
+    # Freeze backbone
+    model = DeepSegmenter(fcn_resnet50(weights_backbone='DEFAULT', num_classes=3))
+    model.to(device)
+    for param in model.net.backbone.parameters():
+        param.requires_grad = False
+    
+    summary(model, (64,3, 64, 64))
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    
+    train_metric = SegMetrics(classes=train_data.classes_seg)
+    val_metric = SegMetrics(classes=val_data.classes_seg)
+    val_frequency = 2
+
+    model_save_dir = Path("saved_models/freezed_backbone")
+    model_save_dir.mkdir(exist_ok=True)
+
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
+
+    trainer = ImgSemSegTrainer(model, 
+                    optimizer,
+                    loss_fn,
+                    lr_scheduler,
+                    train_metric,
+                    val_metric,
+                    train_data,
+                    val_data,
+                    device,
+                    args.num_epochs, 
+                    model_save_dir,
+                    batch_size=64,
+                    val_frequency = val_frequency,
+                    run_name="FCN_freeze_backbone")
+    
+    #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+    trainer.train()
+
+    #prof.export_chrome_trace("trace.json")
+
+    # see Reference implementation of ImgSemSegTrainer
+    # just comment if not used
+    trainer.dispose()
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description='Training')
