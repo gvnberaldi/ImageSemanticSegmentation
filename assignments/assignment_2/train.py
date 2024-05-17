@@ -35,19 +35,20 @@ def train(args):
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST)])
 
     dataset_path = os.path.join(os.path.dirname(__file__), 'data\\oxfordpets')
+    download = False if os.path.exists(os.path.join(dataset_path, 'oxford-iiit-pet')) else True
     train_data = OxfordPetsCustom(root=dataset_path,
                             split="trainval",
                             target_types='segmentation', 
                             transform=train_transform,
                             target_transform=train_transform2,
-                            download=True)
+                            download=download)
 
     val_data = OxfordPetsCustom(root=dataset_path,
                             split="test",
                             target_types='segmentation', 
                             transform=val_transform,
                             target_transform=val_transform2,
-                            download=True)
+                            download=download)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

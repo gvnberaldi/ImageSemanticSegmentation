@@ -1,6 +1,6 @@
 import collections
 import torch
-from typing import  Tuple
+from typing import Tuple
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from tqdm import tqdm

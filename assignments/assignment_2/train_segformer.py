@@ -6,12 +6,13 @@ import torchvision.transforms.v2 as v2
 from pathlib import Path
 import os
 
-from dlvc.models.segformer import  SegFormer
+from dlvc.models.segformer import SegFormer
 from dlvc.models.segment_model import DeepSegmenter
 from dlvc.dataset.cityscapes import CityscapesCustom
 from dlvc.dataset.oxfordpets import OxfordPetsCustom
 from dlvc.metrics import SegMetrics
 from dlvc.trainer import ImgSemSegTrainer
+from torchinfo import summary
 
 
 def train(args):
@@ -35,19 +36,20 @@ def train(args):
 
     if args.dataset == "oxford":
         dataset_path = os.path.join(os.path.dirname(__file__), 'data\\oxfordpets')
+        download = False if os.path.exists(os.path.join(dataset_path, 'oxford-iiit-pet')) else True
         train_data = OxfordPetsCustom(root=dataset_path,
                                 split="trainval",
                                 target_types='segmentation', 
                                 transform=train_transform,
                                 target_transform=train_transform2,
-                                download=True)
+                                download=download)
 
         val_data = OxfordPetsCustom(root=dataset_path,
                                 split="test",
                                 target_types='segmentation', 
                                 transform=val_transform,
                                 target_transform=val_transform2,
-                                download=True)
+                                download=download)
     if args.dataset == "city":
         dataset_path = os.path.join(os.path.dirname(__file__), 'data\\cityscapes')
         train_data = CityscapesCustom(root=dataset_path,
@@ -64,27 +66,31 @@ def train(args):
                                 target_transform=val_transform2)
 
 
-    device = ...
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = DeepSegmenter(SegFormer(num_classes=len(train_data.classes_seg)))
 
-    model = DeepSegmenter(...)
     # If you are in the fine-tuning phase:
     if args.dataset == 'oxford':
-        ##TODO update the encoder weights of the model with the loaded weights of the pretrained model
+        ## TODO update the encoder weights of the model with the loaded weights of the pretrained model
         # e.g. load pretrained weights with: state_dict = torch.load("path to model", map_location='cpu')
-        ...
-        ##
+        loss_fn = torch.nn.CrossEntropyLoss()
+        model_save_dir = Path("saved_models/segformer_fine_tuning")
+    else:
+        loss_fn = torch.nn.CrossEntropyLoss(ignore_index=255)
+        model_save_dir = Path("saved_models/segformer_from_scratch")
+
     model.to(device)
-    optimizer = ...
-    loss_fn = ... # remember to ignore label value 255 when training with the Cityscapes datset
-    
+    summary(model, input_size=(64, 3, 64, 64))
+    '''
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
+
     train_metric = SegMetrics(classes=train_data.classes_seg)
     val_metric = SegMetrics(classes=val_data.classes_seg)
     val_frequency = 2 # for 
 
-    model_save_dir = Path("saved_models")
     model_save_dir.mkdir(exist_ok=True)
 
-    lr_scheduler = ...
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
     
     trainer = ImgSemSegTrainer(model, 
                     optimizer,
@@ -99,10 +105,12 @@ def train(args):
                     model_save_dir,
                     batch_size=64,
                     val_frequency = val_frequency)
+
     trainer.train()
     # see Reference implementation of ImgSemSegTrainer
     # just comment if not used
     trainer.dispose() 
+    '''
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description='Training')

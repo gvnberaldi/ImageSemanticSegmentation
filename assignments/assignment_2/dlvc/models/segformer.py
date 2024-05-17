@@ -1,7 +1,7 @@
 from functools import partial
 import torch.nn as nn
 
-from dlvc.models.mit_transformer import  MixVisionTransformer
+from dlvc.models.mit_transformer import MixVisionTransformer
 from dlvc.models.segformer_head import SegFormerHead, resize
 
 class SegFormer(nn.Module):
