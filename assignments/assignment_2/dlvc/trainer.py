@@ -145,6 +145,8 @@ class ImgSemSegTrainer(BaseTrainer):
 
             if self.subtract_one:
                 labels = labels.squeeze(1)-1
+            else:
+                labels = labels.squeeze(1)
 
             batch_size = inputs.shape[0] # b x ..?
 
@@ -210,6 +212,8 @@ class ImgSemSegTrainer(BaseTrainer):
                 inputs, labels = batch
                 if self.subtract_one:
                     labels = labels.squeeze(1)-1
+                else:
+                    labels = labels.squeeze(1)
                 batch_size = inputs.shape[0]
 
                 # Make predictions for this batch
