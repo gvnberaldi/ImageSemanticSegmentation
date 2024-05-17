@@ -69,34 +69,39 @@ def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DeepSegmenter(SegFormer(num_classes=len(train_data.classes_seg)))
 
+
+
     # If you are in the fine-tuning phase:
     if args.dataset == 'oxford':
-        ## TODO update the encoder weights of the model with the loaded weights of the pretrained model
-        # e.g. load pretrained weights with: state_dict = torch.load("path to model", map_location='cpu')
         loss_fn = torch.nn.CrossEntropyLoss()
-        model_save_dir = Path("saved_models/segformer_fine_tuning")
     else:
         loss_fn = torch.nn.CrossEntropyLoss(ignore_index=255)
-        model_save_dir = Path("saved_models/segformer_from_scratch")
+
+    if args.load_model:
+        model_load_dir = Path("saved_models", args.load_dir)
+        model_load_dir.mkdir(exist_ok=True)
+        model.load(model_load_dir, 'best')
+
+    if args.freeze_weights and args.load_model:
+        for param in model.net.encoder.parameters():
+            param.requires_grad = False
+        params = model.net.decoder.parameters()
+    else:
+        params = model.parameters()
 
     model.to(device)
-    train_dataloader = torch.utils.data.DataLoader(train_data,
-                                          batch_size=64,
-                                          shuffle=True,
-                                          num_workers=2)
-    
-    inputs, _ = next(iter(train_dataloader))
-    model(inputs.to(device))
-
     summary(model, input_size=(64, 3, 64, 64))
-    '''
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
+
+    
+    optimizer = torch.optim.AdamW(params, lr=args.lr, amsgrad=True)
 
     train_metric = SegMetrics(classes=train_data.classes_seg)
     val_metric = SegMetrics(classes=val_data.classes_seg)
     val_frequency = 2 # for 
-
+    
+    model_save_dir = Path("saved_models", args.save_dir)
     model_save_dir.mkdir(exist_ok=True)
+
 
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
     
@@ -111,14 +116,15 @@ def train(args):
                     device,
                     args.num_epochs, 
                     model_save_dir,
-                    batch_size=64,
-                    val_frequency = val_frequency)
+                    batch_size=16,
+                    val_frequency = val_frequency,
+                    run_name=args.run_name)
 
     trainer.train()
     # see Reference implementation of ImgSemSegTrainer
     # just comment if not used
     trainer.dispose() 
-    '''
+    
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description='Training')
@@ -129,7 +135,41 @@ if __name__ == "__main__":
         args = args.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     args.gpu_id = 0
-    args.num_epochs = 31
-    args.dataset = "oxford"
+    args.num_epochs = 40
+    args.dataset = "city"
+    args.load_model = False
+    args.load_dir = None
+    args.freeze_weights = False
+    args.lr = 0.001
+    args.save_dir = 'segformer_pretraining'
+    args.run_name = "SegFormer_pretraining"
 
+
+    #train(args)
+
+    args.dataset = "oxford"
+    args.run_name = "SegFormer_from-scratch"
+    args.save_dir = 'segformer_from_scratch'
+    args.num_epochs = 30
+    #train(args)
+
+    args.load_model = True
+    args.load_dir = 'segformer_pretraining'
+    args.run_name = 'segformer_finetuning'
+    args.save_dir = 'segformer_finetuning'
+    train(args)
+
+    args.freeze_weights = True
+    args.run_name = 'segformer_freeze_weights'
+    args.save_dir = 'segformer_freeze_weights'
+    train(args)
+
+    args.lr = 0.0005
+    args.run_name = 'segformer_freeze_weights_lr_halfed'
+    args.save_dir = 'segformer_freeze_weights_lr_halfed'
+    train(args)
+
+    args.freeze_weights = False
+    args.run_name = 'segformer_finetuning_lr_halfed'
+    args.save_dir = 'segformer_finetuning_lr_halfed'
     train(args)
