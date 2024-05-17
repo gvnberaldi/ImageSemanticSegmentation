@@ -80,6 +80,7 @@ class SegFormerHead(nn.Module):
 
         # Concatenate _c4 - c_1 along the right dimension and then apply the self.linear_fuse layer
         _c = torch.cat([_c4, _c3, _c2, _c1], dim=1)
+        _c = self.linear_fuse(_c)
         _c = self.linear_fuse_norm(_c)
         _c = self.linear_fuse_act(_c)
 

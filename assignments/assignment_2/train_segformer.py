@@ -80,6 +80,14 @@ def train(args):
         model_save_dir = Path("saved_models/segformer_from_scratch")
 
     model.to(device)
+    train_dataloader = torch.utils.data.DataLoader(train_data,
+                                          batch_size=64,
+                                          shuffle=True,
+                                          num_workers=2)
+    
+    inputs, _ = next(iter(train_dataloader))
+    model(inputs.to(device))
+
     summary(model, input_size=(64, 3, 64, 64))
     '''
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
