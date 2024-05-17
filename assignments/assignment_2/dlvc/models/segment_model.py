@@ -23,12 +23,17 @@ class DeepSegmenter(nn.Module):
 
         torch.save(self.net.state_dict(), path)
 
-    def load(self, path):
+    def load(self, path: Path, suffix=None):
         '''
         Loads model from path
         Does not work with transfer model
         '''
-        
+        if suffix is None:
+            path = path / f'{self.net._get_name()}_model.pth'
+        else:
+            path = path / f'{self.net._get_name()}_model_{suffix}.pth'
+
+
         state_dict = torch.load(path, map_location='cpu')
 
         local_dict = self.net.state_dict()
@@ -36,6 +41,7 @@ class DeepSegmenter(nn.Module):
         for key, value in state_dict.items():
             if key not in local_dict:
                  continue
-            local_dict[key].copy_(value)
-
+            if 'encoder' in key: # only load encoder weights
+                local_dict[key].copy_(value)
+        self.net.load_state_dict(local_dict)
         
