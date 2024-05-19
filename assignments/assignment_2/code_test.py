@@ -21,7 +21,7 @@ def denormalize_image(image):
     return denormalized_image
 
 
-def plot_images_and_labels(dataloader):
+def plot_images_and_labels(dataloader, output):
     # Get a batch of data
     images, labels = next(iter(dataloader))
 
@@ -45,6 +45,7 @@ def plot_images_and_labels(dataloader):
         axes[1, i].set_title('Label')
 
     plt.tight_layout()
+    plt.savefig(output)
     plt.show()
 
 
@@ -82,7 +83,7 @@ def datasets_test():
     # Create a DataLoader with batch size 4
     batch_size = 4
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    plot_images_and_labels(train_loader)
+    plot_images_and_labels(train_loader, 'C:\\Users\\Utente\\Desktop\\oxfordpet.jpg')
 
     # Cityscapes dataset
     print('TESTING CITYSCAPES DATASET')
@@ -106,7 +107,7 @@ def datasets_test():
     # Create a DataLoader with batch size 4
     batch_size = 4
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    plot_images_and_labels(train_loader)
+    plot_images_and_labels(train_loader, 'C:\\Users\\Utente\\Desktop\\cityscapes.jpg')
 
 
 def test_metric():
@@ -132,7 +133,7 @@ def test_metric():
 
 
 if __name__ == "__main__":
-    # datasets_test()
-    test_metric()
+    datasets_test()
+    # test_metric()
 
 

@@ -69,8 +69,6 @@ def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DeepSegmenter(SegFormer(num_classes=len(train_data.classes_seg)))
 
-
-
     # If you are in the fine-tuning phase:
     if args.dataset == 'oxford':
         loss_fn = torch.nn.CrossEntropyLoss()
