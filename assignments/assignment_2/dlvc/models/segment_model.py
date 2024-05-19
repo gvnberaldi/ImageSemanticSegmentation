@@ -46,6 +46,6 @@ class DeepSegmenter(nn.Module):
         self.net.load_state_dict(local_dict)
 
     def load_all_weights(self, path):
-        self.load_state_dict(torch.load(path, map_location=torch.device('gpu') if torch.cuda.is_available()
+        self.net.load_state_dict(torch.load(path, map_location=torch.device('gpu') if torch.cuda.is_available()
                                                                                else torch.device('cpu')))
         
