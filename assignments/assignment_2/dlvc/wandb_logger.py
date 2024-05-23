@@ -1,7 +1,8 @@
 import torch
 import wandb
 
-wandb.login(key="5a4726d6cfbe6bf6fa6cdab8143ed9b4f47db04d")
+#Make sure to add a valid key
+wandb.login(key="place_your_key_here")
 class WandBLogger:
 
     def __init__(self, enabled=True, 
@@ -13,7 +14,8 @@ class WandBLogger:
 
 
         if self.enabled:
-            wandb.init(entity="dlvc_group_13",
+            #Make sure to add a valid entity name
+            wandb.init(entity="place_your_entity_here", 
                         project="assignment_2",
                         group="initial_testing")
             if run_name is None:

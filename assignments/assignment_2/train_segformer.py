@@ -12,11 +12,10 @@ from dlvc.dataset.cityscapes import CityscapesCustom
 from dlvc.dataset.oxfordpets import OxfordPetsCustom
 from dlvc.metrics import SegMetrics
 from dlvc.trainer import ImgSemSegTrainer
-from torchinfo import summary
 
 
 def train(args):
-
+    # Define the transformations
     train_transform = v2.Compose([v2.ToImage(), 
                             v2.ToDtype(torch.float32, scale=True),
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST),
@@ -36,6 +35,7 @@ def train(args):
 
     if args.dataset == "oxford":
         dataset_path = os.path.join(os.path.dirname(__file__), 'data\\oxfordpets')
+        #Download oxforpets dataset if not already downloaded
         download = False if os.path.exists(os.path.join(dataset_path, 'oxford-iiit-pet')) else True
         train_data = OxfordPetsCustom(root=dataset_path,
                                 split="trainval",
@@ -51,6 +51,7 @@ def train(args):
                                 target_transform=val_transform2,
                                 download=download)
     if args.dataset == "city":
+        #Expects the cityscapes dataset to be in the data folder, you have to add this manually
         dataset_path = os.path.join(os.path.dirname(__file__), 'data\\cityscapes')
         train_data = CityscapesCustom(root=dataset_path,
                                 split="train",
@@ -73,14 +74,14 @@ def train(args):
     if args.dataset == 'oxford':
         loss_fn = torch.nn.CrossEntropyLoss()
     else:
-        loss_fn = torch.nn.CrossEntropyLoss(ignore_index=255)
+        loss_fn = torch.nn.CrossEntropyLoss(ignore_index=255) # ignore the void class
 
     if args.load_model:
-        model_load_dir = Path("saved_models", args.load_dir)
+        model_load_dir = Path("saved_models", args.load_dir) 
         model_load_dir.mkdir(exist_ok=True)
-        model.load(model_load_dir, 'best')
+        model.load(model_load_dir, 'best') #Loading the backbone model
 
-    if args.freeze_weights and args.load_model:
+    if args.freeze_weights and args.load_model: #Freeze the weights of the backbone model
         for param in model.net.encoder.parameters():
             param.requires_grad = False
         params = model.net.decoder.parameters()
@@ -88,7 +89,6 @@ def train(args):
         params = model.parameters()
 
     model.to(device)
-    summary(model, input_size=(64, 3, 64, 64))
 
     
     optimizer = torch.optim.AdamW(params, lr=args.lr, amsgrad=True)
@@ -125,6 +125,10 @@ def train(args):
     
 
 if __name__ == "__main__":
+    #We will train the model in 4 different ways
+    #For this we will change the arguments and call the train function 4 times
+
+
     args = argparse.ArgumentParser(description='Training')
     args.add_argument('-d', '--gpu_id', default='0', type=str,
                       help='index of which GPU to use')
@@ -142,32 +146,37 @@ if __name__ == "__main__":
     args.save_dir = 'segformer_pretraining'
     args.run_name = "SegFormer_pretraining"
 
-
-    #train(args)
+    #Pretraining of the SegFormer on the cityscapes dataset
+    train(args)
 
     args.dataset = "oxford"
     args.run_name = "SegFormer_from-scratch"
     args.save_dir = 'segformer_from_scratch'
     args.num_epochs = 30
-    #train(args)
+    # Training the SegFormer from scratch on the oxfordpets dataset
+    train(args)
 
     args.load_model = True
     args.load_dir = 'segformer_pretraining'
     args.run_name = 'segformer_finetuning'
     args.save_dir = 'segformer_finetuning'
+    # Fine-tuning the SegFormer on the oxfordpets dataset
     train(args)
 
     args.freeze_weights = True
     args.run_name = 'segformer_freeze_weights'
     args.save_dir = 'segformer_freeze_weights'
+    # Freezing the weights of the backbone model and fine-tuning the SegFormer on the oxfordpets dataset
     train(args)
 
     args.lr = 0.0005
     args.run_name = 'segformer_freeze_weights_lr_halfed'
     args.save_dir = 'segformer_freeze_weights_lr_halfed'
+    # Freezing the weights of the backbone model and fine-tuning the SegFormer on the oxfordpets dataset with a learning rate of 0.0005
     train(args)
 
     args.freeze_weights = False
     args.run_name = 'segformer_finetuning_lr_halfed'
     args.save_dir = 'segformer_finetuning_lr_halfed'
+    # Fine-tuning the SegFormer on the oxfordpets dataset with a learning rate of 0.0005
     train(args)

@@ -97,7 +97,7 @@ class ImgSemSegTrainer(BaseTrainer):
         self.val_frequency = val_frequency
         self.val_metric = val_metric
 
-        self.subtract_one = isinstance(train_data, OxfordPetsCustom)
+        self.subtract_one = isinstance(train_data, OxfordPetsCustom) #Labels of oxfordpets start at one, but we want them to start at 0
 
         self.train_data_loader = torch.utils.data.DataLoader(train_data,
                                           batch_size=batch_size,
@@ -135,9 +135,6 @@ class ImgSemSegTrainer(BaseTrainer):
         #time_old = time.time()
         for i, batch in tqdm(enumerate(self.train_data_loader), desc="train", total=len(self.train_data_loader)):
             # Zero your gradients for every batch!
-            #time_new = time.time()
-            #print(f"getting batch {i} took time {time_new-time_old}")
-
             self.optimizer.zero_grad()
 
             # get the inputs; data is a list of [inputs, labels]
@@ -151,43 +148,26 @@ class ImgSemSegTrainer(BaseTrainer):
             batch_size = inputs.shape[0] # b x ..?
 
             # Make predictions for this batch
-            #time_old = time.time()
             outputs = self.model(inputs.to(self.device))
-            #time_new = time.time()
-            #print(f"predictions made {i} took time {time_new-time_old}")
             if isinstance(outputs, collections.OrderedDict):
                 outputs = outputs['out']
             # Calculate loss
-
-            #time_old = time.time()
             loss = self.loss_fn(outputs, labels.to(self.device))
             loss.backward()
-            #time_new = time.time()
-            #print(f"loss calculated {i} took time {time_new-time_old}")
 
 
             # Adjust learning weights
-            #time_old = time.time()
             self.optimizer.step()
-            #time_new = time.time()
-            #print(f"optimizer step {i} took time {time_new-time_old}")
-
-
 
             # Gather metrics
             epoch_loss += (loss.item() * batch_size)
 
-
-            #time_old = time.time()
             self.train_metric.update(outputs.detach().cpu(), labels.detach().cpu())
-            #time_new = time.time()
-            #print(f"metrics updated {i} took time {time_new-time_old}")
 
-            time_old = time.time()
 
-        self.lr_scheduler.step()
-        epoch_loss /= self.num_train_data
-        epoch_mIoU = self.train_metric.mIoU()
+        self.lr_scheduler.step() # update learning rate
+        epoch_loss /= self.num_train_data # average loss over all samples
+        epoch_mIoU = self.train_metric.mIoU() # mean IoU over all samples
 
         print(f"______epoch {epoch_idx} \n")
         print(f"Loss: {epoch_loss}")

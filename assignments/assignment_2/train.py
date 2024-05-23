@@ -11,13 +11,12 @@ from dlvc.dataset.oxfordpets import  OxfordPetsCustom
 from dlvc.metrics import SegMetrics
 from dlvc.trainer import ImgSemSegTrainer
 
-from torchinfo import summary
-
 
 from torch.profiler import profile, record_function, ProfilerActivity
 
 def train(args):
 
+    # Define the transformations
     train_transform = v2.Compose([v2.ToImage(), 
                             v2.ToDtype(torch.float32, scale=True),
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST),
@@ -34,7 +33,10 @@ def train(args):
                             v2.ToDtype(torch.long, scale=False),
                             v2.Resize(size=(64,64), interpolation=v2.InterpolationMode.NEAREST)])
 
-    dataset_path = os.path.join(os.path.dirname(__file__), 'data\\oxfordpets')
+
+    dataset_path = os.path.join(os.path.dirname(__file__), 'data','oxfordpets')
+
+    #Dpwnload the dataset if not already downloaded
     download = False if os.path.exists(os.path.join(dataset_path, 'oxford-iiit-pet')) else True
     train_data = OxfordPetsCustom(root=dataset_path,
                             split="trainval",
@@ -56,7 +58,6 @@ def train(args):
     # Training from scratch
     model = DeepSegmenter(fcn_resnet50(weights=None, num_classes=3))
     model.to(device)
-    summary(model, (64,3, 64, 64))
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
     loss_fn = torch.nn.CrossEntropyLoss()
@@ -85,10 +86,8 @@ def train(args):
                     val_frequency = val_frequency,
                     run_name="FCN_from-scratch")
     
-    #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
     trainer.train()
 
-    #prof.export_chrome_trace("trace.json")
 
     # see Reference implementation of ImgSemSegTrainer
     # just comment if not used
@@ -96,9 +95,8 @@ def train(args):
 
     # pretrained weights
 
-    model = DeepSegmenter(fcn_resnet50(weights_backbone='DEFAULT', num_classes=3))
+    model = DeepSegmenter(fcn_resnet50(weights_backbone='DEFAULT', num_classes=3)) #Use default weights for backbone, these get automatically downloaded
     model.to(device)
-    summary(model, (64,3, 64, 64))
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
     loss_fn = torch.nn.CrossEntropyLoss()
@@ -127,10 +125,8 @@ def train(args):
                     val_frequency = val_frequency,
                     run_name = "FCN")
     
-    #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
     trainer.train()
 
-    #prof.export_chrome_trace("trace.json")
 
     # see Reference implementation of ImgSemSegTrainer
     # just comment if not used
@@ -141,9 +137,8 @@ def train(args):
     model = DeepSegmenter(fcn_resnet50(weights_backbone='DEFAULT', num_classes=3))
     model.to(device)
     for param in model.net.backbone.parameters():
-        param.requires_grad = False
-    
-    summary(model, (64,3, 64, 64))
+        param.requires_grad = False #Set requires_grad to False for all parameters in the backbone to freeze them
+
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
     loss_fn = torch.nn.CrossEntropyLoss()
