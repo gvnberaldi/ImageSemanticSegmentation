@@ -74,14 +74,14 @@ def train(args):
     if args.dataset == 'oxford':
         loss_fn = torch.nn.CrossEntropyLoss()
     else:
-        loss_fn = torch.nn.CrossEntropyLoss(ignore_index=255) # ignore the void class
+        loss_fn = torch.nn.CrossEntropyLoss(ignore_index=255)  # ignore the void class
 
     if args.load_model:
         model_load_dir = Path("saved_models", args.load_dir) 
         model_load_dir.mkdir(exist_ok=True)
-        model.load(model_load_dir, 'best') #Loading the backbone model
+        model.load(model_load_dir, 'best')  # Loading the backbone model
 
-    if args.freeze_weights and args.load_model: #Freeze the weights of the backbone model
+    if args.freeze_weights and args.load_model:  # Freeze the weights of the backbone model
         for param in model.net.encoder.parameters():
             param.requires_grad = False
         params = model.net.decoder.parameters()
@@ -89,17 +89,15 @@ def train(args):
         params = model.parameters()
 
     model.to(device)
-
     
     optimizer = torch.optim.AdamW(params, lr=args.lr, amsgrad=True)
 
     train_metric = SegMetrics(classes=train_data.classes_seg)
     val_metric = SegMetrics(classes=val_data.classes_seg)
-    val_frequency = 2 # for 
+    val_frequency = 2
     
     model_save_dir = Path("saved_models", args.save_dir)
     model_save_dir.mkdir(exist_ok=True)
-
 
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
     
@@ -125,9 +123,8 @@ def train(args):
     
 
 if __name__ == "__main__":
-    #We will train the model in 4 different ways
-    #For this we will change the arguments and call the train function 4 times
-
+    # We will train the model in 4 different ways
+    # For this we will change the arguments and call the train function different times
 
     args = argparse.ArgumentParser(description='Training')
     args.add_argument('-d', '--gpu_id', default='0', type=str,
@@ -138,6 +135,8 @@ if __name__ == "__main__":
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     args.gpu_id = 0
     args.num_epochs = 40
+
+    # Pretraining of the SegFormer on the cityscapes dataset
     args.dataset = "city"
     args.load_model = False
     args.load_dir = None
@@ -145,38 +144,36 @@ if __name__ == "__main__":
     args.lr = 0.001
     args.save_dir = 'segformer_pretraining'
     args.run_name = "SegFormer_pretraining"
-
-    #Pretraining of the SegFormer on the cityscapes dataset
     train(args)
 
+    # Training the SegFormer from scratch on the oxfordpets dataset
     args.dataset = "oxford"
     args.run_name = "SegFormer_from-scratch"
     args.save_dir = 'segformer_from_scratch'
     args.num_epochs = 30
-    # Training the SegFormer from scratch on the oxfordpets dataset
     train(args)
 
+    # Fine-tuning the pre-trained SegFormer model (on the cityscape dataset) on the oxfordpets dataset
     args.load_model = True
     args.load_dir = 'segformer_pretraining'
     args.run_name = 'segformer_finetuning'
     args.save_dir = 'segformer_finetuning'
-    # Fine-tuning the SegFormer on the oxfordpets dataset
     train(args)
 
+    # Freezing the weights of the backbone model and fine-tuning the SegFormer on the oxfordpets dataset
     args.freeze_weights = True
     args.run_name = 'segformer_freeze_weights'
     args.save_dir = 'segformer_freeze_weights'
-    # Freezing the weights of the backbone model and fine-tuning the SegFormer on the oxfordpets dataset
     train(args)
 
+    # Freezing the weights of the backbone model and fine-tuning the SegFormer on the oxfordpets dataset with a learning rate of 0.0005
     args.lr = 0.0005
     args.run_name = 'segformer_freeze_weights_lr_halfed'
     args.save_dir = 'segformer_freeze_weights_lr_halfed'
-    # Freezing the weights of the backbone model and fine-tuning the SegFormer on the oxfordpets dataset with a learning rate of 0.0005
     train(args)
 
+    # Fine-tuning the SegFormer on the oxfordpets dataset with a learning rate of 0.0005
     args.freeze_weights = False
     args.run_name = 'segformer_finetuning_lr_halfed'
     args.save_dir = 'segformer_finetuning_lr_halfed'
-    # Fine-tuning the SegFormer on the oxfordpets dataset with a learning rate of 0.0005
     train(args)

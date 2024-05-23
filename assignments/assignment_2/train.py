@@ -54,7 +54,6 @@ def train(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    
     # Training from scratch
     model = DeepSegmenter(fcn_resnet50(weights=None, num_classes=3))
     model.to(device)
@@ -88,14 +87,12 @@ def train(args):
     
     trainer.train()
 
-
     # see Reference implementation of ImgSemSegTrainer
     # just comment if not used
     trainer.dispose()
 
-    # pretrained weights
-
-    model = DeepSegmenter(fcn_resnet50(weights_backbone='DEFAULT', num_classes=3)) #Use default weights for backbone, these get automatically downloaded
+    # Pretrained weights
+    model = DeepSegmenter(fcn_resnet50(weights_backbone='DEFAULT', num_classes=3)) # Use default weights for backbone, these get automatically downloaded
     model.to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
@@ -127,18 +124,15 @@ def train(args):
     
     trainer.train()
 
-
     # see Reference implementation of ImgSemSegTrainer
     # just comment if not used
     trainer.dispose()
-    
 
     # Freeze backbone
     model = DeepSegmenter(fcn_resnet50(weights_backbone='DEFAULT', num_classes=3))
     model.to(device)
     for param in model.net.backbone.parameters():
-        param.requires_grad = False #Set requires_grad to False for all parameters in the backbone to freeze them
-
+        param.requires_grad = False # Set requires_grad to False for all parameters in the backbone to freeze them
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, amsgrad=True)
     loss_fn = torch.nn.CrossEntropyLoss()
@@ -167,14 +161,15 @@ def train(args):
                     val_frequency = val_frequency,
                     run_name="FCN_freeze_backbone")
     
-    #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+    # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
     trainer.train()
 
-    #prof.export_chrome_trace("trace.json")
+    # prof.export_chrome_trace("trace.json")
 
     # see Reference implementation of ImgSemSegTrainer
     # just comment if not used
     trainer.dispose()
+
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description='Training')
@@ -186,6 +181,5 @@ if __name__ == "__main__":
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
     args.gpu_id = 0
     args.num_epochs = 30
-
 
     train(args)

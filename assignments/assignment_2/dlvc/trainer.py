@@ -10,6 +10,7 @@ from dlvc.wandb_logger import WandBLogger
 
 import time
 
+
 class BaseTrainer(metaclass=ABCMeta):
     '''
     Base class of all Trainers.
@@ -38,6 +39,7 @@ class BaseTrainer(metaclass=ABCMeta):
         '''
 
         pass
+
 
 class ImgSemSegTrainer(BaseTrainer):
     """
@@ -81,8 +83,6 @@ class ImgSemSegTrainer(BaseTrainer):
             - Optionally use weights & biases for tracking metrics and loss: initializer W&B logger
 
         '''
-        
-
     
         self.model = model
         self.optimizer = optimizer
@@ -97,7 +97,7 @@ class ImgSemSegTrainer(BaseTrainer):
         self.val_frequency = val_frequency
         self.val_metric = val_metric
 
-        self.subtract_one = isinstance(train_data, OxfordPetsCustom) #Labels of oxfordpets start at one, but we want them to start at 0
+        self.subtract_one = isinstance(train_data, OxfordPetsCustom) # Labels of oxfordpets start at one, but we want them to start at 0
 
         self.train_data_loader = torch.utils.data.DataLoader(train_data,
                                           batch_size=batch_size,
@@ -116,7 +116,6 @@ class ImgSemSegTrainer(BaseTrainer):
             run_name = model.net._get_name()
 
         self.wandb_logger = WandBLogger(enabled=True, model=model, run_name=run_name)
-        
 
     def _train_epoch(self, epoch_idx: int) -> Tuple[float, float]:
         """
@@ -130,13 +129,11 @@ class ImgSemSegTrainer(BaseTrainer):
         epoch_loss = 0.
         self.train_metric.reset()
 
-        # train epoch
-
-        #time_old = time.time()
+        # Train epoch
+        # time_old = time.time()
         for i, batch in tqdm(enumerate(self.train_data_loader), desc="train", total=len(self.train_data_loader)):
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
-
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = batch
 
@@ -155,7 +152,6 @@ class ImgSemSegTrainer(BaseTrainer):
             loss = self.loss_fn(outputs, labels.to(self.device))
             loss.backward()
 
-
             # Adjust learning weights
             self.optimizer.step()
 
@@ -163,7 +159,6 @@ class ImgSemSegTrainer(BaseTrainer):
             epoch_loss += (loss.item() * batch_size)
 
             self.train_metric.update(outputs.detach().cpu(), labels.detach().cpu())
-
 
         self.lr_scheduler.step() # update learning rate
         epoch_loss /= self.num_train_data # average loss over all samples
