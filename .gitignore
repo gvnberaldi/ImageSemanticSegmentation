@@ -11,6 +11,8 @@ __pycache__/
 
 *.zip
 
+group_13/
+
 # Test Main and output
 #test_main.py
 #test_1.png
