@@ -1,8 +1,10 @@
 import torch
 import wandb
 
-#Make sure to add a valid key
+# Make sure to add a valid key
 wandb.login(key="place_your_key_here")
+
+
 class WandBLogger:
 
     def __init__(self, enabled=True, 
@@ -10,8 +12,6 @@ class WandBLogger:
                  run_name: str=None) -> None:
         
         self.enabled = enabled
-
-
 
         if self.enabled:
             #Make sure to add a valid entity name
@@ -28,7 +28,6 @@ class WandBLogger:
             
     def watch(self, model, log_freq: int=1):
         wandb.watch(model, log="all", log_freq=log_freq)
-            
 
     def log(self, log_dict: dict, commit=True, step=None):
         if self.enabled:
@@ -36,7 +35,6 @@ class WandBLogger:
                 wandb.log(log_dict, commit=commit, step=step)
             else:
                 wandb.log(log_dict, commit=commit)
- 
 
     def finish(self):
         if self.enabled:

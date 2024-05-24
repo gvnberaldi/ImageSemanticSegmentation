@@ -67,8 +67,6 @@ class SegMetrics(PerformanceMeasure):
             raise ValueError(
                 "Prediction and target shapes do not match or are incompatible with the number of classes.")
 
-        #start_time = time.time()  # Record the start time
-
         # Get the predicted classes by taking the argmax over the class dimension
         # Shape of pred_classes: (s, h, w)
         pred_classes = prediction.argmax(dim=1)
@@ -88,9 +86,6 @@ class SegMetrics(PerformanceMeasure):
             # Union: Pixels where at least one mask is True (True Positive + False Positive + False Negative)
             self.intersection[cls] += torch.sum(pred_mask & true_mask).item()
             self.union[cls] += torch.sum(pred_mask | true_mask).item()
-
-        #end_time = time.time()  # Record the end time
-        #print(f"Time taken by new update: {end_time - start_time:.6f} seconds")
 
     def __str__(self):
         '''
