@@ -1,8 +1,14 @@
+import collections
 import torch
 from typing import Tuple
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from tqdm import tqdm, trange
+from tqdm import tqdm
+
+from dlvc.dataset.oxfordpets import OxfordPetsCustom
+from dlvc.wandb_logger import WandBLogger
+
+import time
 
 class BaseTrainer(metaclass=ABCMeta):
     '''
@@ -12,29 +18,28 @@ class BaseTrainer(metaclass=ABCMeta):
     @abstractmethod
     def train(self) -> None:
         '''
-        Holds training logic.
+        Returns the number of samples in the dataset.
         '''
 
         pass
 
     @abstractmethod
-    def _val_epoch(self) -> Tuple[float, float, float]:
+    def _val_epoch(self) -> Tuple[float, float]:
         '''
-        Holds validation logic for one epoch.
+        Returns the number of samples in the dataset.
         '''
 
         pass
 
     @abstractmethod
-    def _train_epoch(self) -> Tuple[float, float, float]:
+    def _train_epoch(self) -> Tuple[float, float]:
         '''
-        Holds training logic for one epoch.
+        Returns the number of samples in the dataset.
         '''
 
         pass
 
-
-class ImgClassificationTrainer(BaseTrainer):
+class ImgSemSegTrainer(BaseTrainer):
     """
     Class that stores the logic for training a model for image classification.
     """
@@ -52,17 +57,17 @@ class ImgClassificationTrainer(BaseTrainer):
                  training_save_dir: Path,
                  batch_size: int = 4,
                  val_frequency: int = 5,
-                 logger=None) -> None:
+                 run_name: str = None):
         '''
         Args and Kwargs:
             model (nn.Module): Deep Network to train
             optimizer (torch.optim): optimizer used to train the network
             loss_fn (torch.nn): loss function used to train the network
             lr_scheduler (torch.optim.lr_scheduler): learning rate scheduler used to train the network
-            train_metric (dlvc.metrics.Accuracy): Accuracy class to get mAcc and mPCAcc of training set
-            val_metric (dlvc.metrics.Accuracy): Accuracy class to get mAcc and mPCAcc of validation set
-            train_data (dlvc.datasets.cifar10.CIFAR10Dataset): Train dataset
-            val_data (dlvc.datasets.cifar10.CIFAR10Dataset): Validation dataset
+            train_metric (dlvc.metrics.SegMetrics): SegMetrics class to get mIoU of training set
+            val_metric (dlvc.metrics.SegMetrics): SegMetrics class to get mIoU of validation set
+            train_data (dlvc.datasets...): Train dataset
+            val_data (dlvc.datasets...): Validation dataset
             device (torch.device): cuda or cpu - device used to train the network
             num_epochs (int): number of epochs to train the network
             training_save_dir (Path): the path to the folder where the best model is stored
@@ -76,123 +81,176 @@ class ImgClassificationTrainer(BaseTrainer):
             - Optionally use weights & biases for tracking metrics and loss: initializer W&B logger
 
         '''
+        
 
+    
         self.model = model
         self.optimizer = optimizer
         self.loss_fn = loss_fn
         self.lr_scheduler = lr_scheduler
-        self.train_metric = train_metric
-        self.val_metric = val_metric
-        self.train_data = train_data
-        self.val_data = val_data
+
         self.device = device
+
         self.num_epochs = num_epochs
-        self.training_save_dir = training_save_dir
-        self.batch_size = batch_size
+        self.train_metric = train_metric
+
         self.val_frequency = val_frequency
-        self.logger = logger
+        self.val_metric = val_metric
 
-        # Create data loaders
-        self.training_loader = torch.utils.data.DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
-        self.validation_loader = torch.utils.data.DataLoader(val_data, batch_size=self.batch_size, shuffle=False)
+        self.subtract_one = isinstance(train_data, OxfordPetsCustom) #Labels of oxfordpets start at one, but we want them to start at 0
 
-    def _train_epoch(self, epoch_idx: int) -> Tuple[float, float, float]:
+        self.train_data_loader = torch.utils.data.DataLoader(train_data,
+                                          batch_size=batch_size,
+                                          shuffle=True,
+                                          num_workers=2)
+    
+        self.val_data_loader = torch.utils.data.DataLoader(val_data,
+                                          batch_size=batch_size,
+                                          shuffle=False,
+                                          num_workers=1)
+        self.num_train_data = len(train_data)
+        self.num_val_data = len(val_data)
+
+        self.checkpoint_dir = training_save_dir
+        if run_name is None:
+            run_name = model.net._get_name()
+
+        self.wandb_logger = WandBLogger(enabled=True, model=model, run_name=run_name)
+        
+
+    def _train_epoch(self, epoch_idx: int) -> Tuple[float, float]:
         """
         Training logic for one epoch. 
         Prints current metrics at end of epoch.
-        Returns loss, mean accuracy and mean per class accuracy for this epoch.
+        Returns loss, mean IoU for this epoch.
 
         epoch_idx (int): Current epoch number
         """
-
-        # Logic mostly from https://pytorch.org/tutorials/beginner/introyt/trainingyt.html
-        running_loss = 0.
+        self.model.train()
+        epoch_loss = 0.
         self.train_metric.reset()
 
-        for i, data in enumerate(self.training_loader):
-            # print(self.model.device)
-            # Every data instance is an input + label pair
-            inputs, labels = data
+        # train epoch
 
-            inputs = inputs.to(self.device)
-            labels = labels.long().to(self.device)
-
+        #time_old = time.time()
+        for i, batch in tqdm(enumerate(self.train_data_loader), desc="train", total=len(self.train_data_loader)):
             # Zero your gradients for every batch!
             self.optimizer.zero_grad()
+
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = batch
+
+            if self.subtract_one:
+                labels = labels.squeeze(1)-1
+            else:
+                labels = labels.squeeze(1)
+
+            batch_size = inputs.shape[0] # b x ..?
+
             # Make predictions for this batch
-            self.outputs = self.model(inputs)
-            # Compute the loss and its gradients
-            self.loss = self.loss_fn(self.outputs, labels)
-            self.loss.backward()
+            outputs = self.model(inputs.to(self.device))
+            if isinstance(outputs, collections.OrderedDict):
+                outputs = outputs['out']
+            # Calculate loss
+            loss = self.loss_fn(outputs, labels.to(self.device))
+            loss.backward()
+
+
             # Adjust learning weights
             self.optimizer.step()
 
-            running_loss += self.loss.item()
-            self.train_metric.update(prediction=self.outputs, target=labels)
+            # Gather metrics
+            epoch_loss += (loss.item() * batch_size)
 
-        print(f"Training metric for epoch: {epoch_idx} \n")
-        print(f'Loss = {running_loss/(i+1)}')
+            self.train_metric.update(outputs.detach().cpu(), labels.detach().cpu())
+
+
+        self.lr_scheduler.step() # update learning rate
+        epoch_loss /= self.num_train_data # average loss over all samples
+        epoch_mIoU = self.train_metric.mIoU() # mean IoU over all samples
+
+        print(f"______epoch {epoch_idx} \n")
+        print(f"Loss: {epoch_loss}")
         print(self.train_metric)
 
-        self.logger.log({'Train Loss': running_loss/(i+1), 'Train Accuracy': self.train_metric.accuracy(), 'Train Per Class Accuracy': self.train_metric.per_class_accuracy()}, step=epoch_idx, commit=False)
+        return epoch_loss, epoch_mIoU
 
-        return running_loss/(i+1),  self.train_metric.accuracy(), self.train_metric.per_class_accuracy()
-
-    def _val_epoch(self, epoch_idx:int) -> Tuple[float, float, float]:
+    def _val_epoch(self, epoch_idx:int) -> Tuple[float, float]:
         """
         Validation logic for one epoch. 
         Prints current metrics at end of epoch.
-        Returns loss, mean accuracy and mean per class accuracy for this epoch on the validation data set.
+        Returns loss, mean IoU for this epoch on the validation data set.
 
         epoch_idx (int): Current epoch number
         """
-        # Logic mostly from https://pytorch.org/tutorials/beginner/introyt/trainingyt.html
-        running_loss = 0.
         self.val_metric.reset()
-
-        with torch.no_grad():
-            for i, data in enumerate(self.validation_loader):
-                # Every data instance is an input + label pair
-                inputs, labels = data
-                inputs = inputs.to(self.device)
-                labels = labels.long().to(self.device)
+        epoch_loss = 0.
+        for batch_idx, batch in tqdm(enumerate(self.val_data_loader), desc="eval", total=len(self.val_data_loader)):
+            self.model.eval()
+            with torch.no_grad():
+                # get the inputs; data is a tuple of [inputs, labels]
+                inputs, labels = batch
+                if self.subtract_one:
+                    labels = labels.squeeze(1)-1
+                else:
+                    labels = labels.squeeze(1)
+                batch_size = inputs.shape[0]
 
                 # Make predictions for this batch
-                self.outputs = self.model(inputs)
-                # Compute the loss
-                self.loss = self.loss_fn(self.outputs, labels)
-                running_loss += self.loss.item()
+                outputs = self.model(inputs.to(self.device))
+                if isinstance(outputs, collections.OrderedDict):
+                    outputs = outputs['out']
 
-                # Get class accuracy
-                self.val_metric.update(prediction=self.outputs, target=labels)
+                # Compute the loss and its gradients
+                loss = self.loss_fn(outputs, labels.to(self.device))
+                # Gather metrics
+                epoch_loss += (loss.item() * batch_size)
+                self.val_metric.update(outputs.cpu(), labels.cpu())
 
-        print(f"Validation metric for epoch: {epoch_idx} \n")
-        print(f'Loss = {running_loss / (i + 1)}')
+        epoch_loss /= self.num_val_data
+        epoch_mIoU = self.val_metric.mIoU()
+        print(f"______epoch {epoch_idx} - validation \n")
+        print(f"Loss: {epoch_loss}")
         print(self.val_metric)
 
-        self.logger.log({'Validation Loss': running_loss/(i+1), 'Validation Accuracy': self.val_metric.accuracy(), 'Validation Per Class Accuracy': self.val_metric.per_class_accuracy()}, step=epoch_idx, commit=False)
+        return epoch_loss, epoch_mIoU
 
-        return running_loss/(i+1), self.val_metric.accuracy(), self.val_metric.per_class_accuracy()
-
-    def train(self, save = False) -> None:
+    def train(self) -> None:
         """
         Full training logic that loops over num_epochs and
         uses the _train_epoch and _val_epoch methods.
-        Save the model if mean per class accuracy on validation data set is higher
-        than currently saved best mean per class accuracy. 
+        Save the model if mean IoU on validation data set is higher
+        than currently saved best mean IoU or if it is end of training. 
         Depending on the val_frequency parameter, validation is not performed every epoch.
         """
-        best_accuracy = 0.
+        best_mIoU = 0.
+        for epoch_idx in range(self.num_epochs):
 
-        for epoch in trange(self.num_epochs):
-            self.model.train()
-            self._train_epoch(epoch)
-            if (epoch+1) % self.val_frequency == 0:
-                self.model.eval()
-                val_metrics = self._val_epoch(epoch)
-                if val_metrics[1] > best_accuracy and save:
-                    best_accuracy = val_metrics[1]
-                    self.model.save(save_dir=self.training_save_dir, suffix=f'model.pth')
+            train_loss, train_mIoU = self._train_epoch(epoch_idx)
+
+            wandb_log = {'epoch': epoch_idx}
+            # log stuff
+            wandb_log.update({"train/loss": train_loss})
+            wandb_log.update({"train/mIoU": train_mIoU})
+
+            if epoch_idx % self.val_frequency == 0:
+                val_loss, val_mIoU = self._val_epoch(epoch_idx)
+                wandb_log.update({"val/loss": val_loss})
+                wandb_log.update({"val/mIoU": val_mIoU})
+
+                if best_mIoU <= val_mIoU:
+                    print(f"####best mIou: {val_mIoU}")
+                    print(f"####saving model to {self.checkpoint_dir}")
+                    self.model.save(Path(self.checkpoint_dir), suffix="best")
+                    best_mIoU = val_mIoU
+                if epoch_idx == self.num_epochs-1:
+                    self.model.save(Path(self.checkpoint_dir), suffix="last")
+
+            self.wandb_logger.log(wandb_log)
+
+    def dispose(self) -> None:
+        self.wandb_logger.finish()
+
 
 
 

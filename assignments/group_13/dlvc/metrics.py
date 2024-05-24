@@ -1,6 +1,6 @@
+import time
 from abc import ABCMeta, abstractmethod
 import torch
-import numpy as np
 
 class PerformanceMeasure(metaclass=ABCMeta):
     '''
@@ -33,92 +33,87 @@ class PerformanceMeasure(metaclass=ABCMeta):
         pass
 
 
-
-class Accuracy(PerformanceMeasure):
+class SegMetrics(PerformanceMeasure):
     '''
-    Average classification accuracy.
+    Mean Intersection over Union.
     '''
 
-    def __init__(self, classes) -> None:
+    def __init__(self, classes):
         self.classes = classes
-        self.correct_predictions = 0
-        self.total_predictions = 0
-        self.class_correct_predictions = [0] * len(self.classes)
-        self.class_total_predictions = [0] * len(self.classes)
-
-        self.per_class_accuracies = np.zeros(len(self.classes))
-        self.overall_accuracy = 0
+        self.intersection = torch.zeros(len(self.classes), dtype=torch.float32)
+        self.union = torch.zeros(len(self.classes), dtype=torch.float32)
         self.reset()
 
     def reset(self) -> None:
         '''
         Resets the internal state.
         '''
-        self.correct_predictions = 0
-        self.total_predictions = 0
-        self.class_correct_predictions = [0] * len(self.classes)
-        self.class_total_predictions = [0] * len(self.classes)
+        self.intersection = torch.zeros(len(self.classes), dtype=torch.float32)
+        self.union = torch.zeros(len(self.classes), dtype=torch.float32)
 
-        self.per_class_accuracies = np.zeros(len(self.classes))
-        self.overall_accuracy = 0
-
-    def update(self, prediction: torch.Tensor, 
-               target: torch.Tensor) -> None:
+    def update(self, prediction: torch.Tensor, target: torch.Tensor) -> None:
         '''
         Update the measure by comparing predicted data with ground-truth target data.
-        prediction must have shape (s,c) with each row being a class-score vector.
-        target must have shape (s,) and values between 0 and c-1 (true class labels).
+        prediction must have shape (b,c,h,w) where b=batchsize, c=num_classes, h=height, w=width.
+        target must have shape (b,h,w) and values between 0 and c-1 (true class labels).
         Raises ValueError if the data shape or values are unsupported.
+        Make sure to not include pixels of value 255 in the calculation since those are to be ignored.
         '''
 
-        if prediction.shape[1] != len(self.classes):
-            raise ValueError(f"Number of classes in prediction ({prediction.shape[1]}) \
-                               does not match the expected number of classes ({len(self.classes)}).")
-        if prediction.shape[0] != target.shape[0]:
-            raise ValueError("Number of samples in prediction and target tensors do not match.")
-        if target.min().item() < 0 or target.max().item() >= len(self.classes):
-            raise ValueError("Target values are out of bounds.")
+        # Check if prediction and target have compatible shapes
+        if (prediction.shape[0] != target.shape[0] or
+            prediction.shape[2:] != target.shape[1:] or
+            prediction.shape[1] != len(self.classes)):
+            raise ValueError(
+                "Prediction and target shapes do not match or are incompatible with the number of classes.")
 
-        predicted_classes = torch.argmax(prediction, dim=1)
-        self.correct_predictions += (predicted_classes == target).sum().item()
-        self.total_predictions += target.size(0)
+        #start_time = time.time()  # Record the start time
 
-        for i in range(len(self.classes)):
-            class_mask = (target == i)  # Index of samples that belong to class i
-            self.class_correct_predictions[i] += (predicted_classes[class_mask] == i).sum().item()
-            self.class_total_predictions[i] += class_mask.sum().item()
+        # Get the predicted classes by taking the argmax over the class dimension
+        # Shape of pred_classes: (s, h, w)
+        pred_classes = prediction.argmax(dim=1)
+        # valid_mask: Valid pixels (where target is not equal to 255)
+        valid_mask = target != 255
+
+        # Iterate over each class to calculate intersection and union per class
+        for cls in range(len(self.classes)):
+            # Create binary masks for the current class
+            # pred_mask: Pixels predicted as the current class
+            # true_mask: Pixels labeled as the current class
+            pred_mask = (pred_classes == cls) & valid_mask
+            true_mask = (target == cls) & valid_mask
+
+            # Calculate the intersection and union for the current class
+            # Intersection: Pixels where both masks are True (True Positive)
+            # Union: Pixels where at least one mask is True (True Positive + False Positive + False Negative)
+            self.intersection[cls] += torch.sum(pred_mask & true_mask).item()
+            self.union[cls] += torch.sum(pred_mask | true_mask).item()
+
+        #end_time = time.time()  # Record the end time
+        #print(f"Time taken by new update: {end_time - start_time:.6f} seconds")
 
     def __str__(self):
         '''
-        Return a string representation of the performance, accuracy and per class accuracy.
+        Return a string representation of the performance, mean IoU.
+        e.g. "mIou: 0.54"
         '''
-        performance_str = f'Overall Accuracy: {self.accuracy():.4f}\n'
-        performance_str += f'Per Class Accuracies:{self.per_class_accuracy():.4f} \n'
+        return f"mIou: {self.mIoU():.2f}"
 
-        for i in range(len(self.classes)):
-            performance_str += f'Accuracy for class {self.classes[i]} is: {self.per_class_accuracies[i]:.4f} \n'
-
-        return performance_str
-
-    def accuracy(self) -> float:
+    def mIoU(self):
         '''
-        Compute and return the accuracy as a float between 0 and 1.
+        Compute and return the mean IoU as a float between 0 and 1.
         Returns 0 if no data is available (after resets).
+        If the denominator for IoU calculation for one of the classes is 0,
+        use 0 as IoU for this class.
         '''
-        if self.total_predictions == 0:
-            return 0.0
-        self.overall_accuracy = self.correct_predictions / self.total_predictions
-        return self.overall_accuracy
 
-    def per_class_accuracy(self) -> float:
-        '''
-        Compute and return the per class accuracy as a float between 0 and 1.
-        Returns 0 if no data is available (after resets).
-        '''
-        if self.total_predictions == 0:
-            return 0.0
-        for i in range(len(self.classes)):
-            if self.class_total_predictions[i] != 0:
-                self.per_class_accuracies[i] = self.class_correct_predictions[i] / self.class_total_predictions[i]
-        return self.per_class_accuracies.mean()
-       
+        # Calculate IoU for each class
+        iou = self.intersection / self.union
+        iou[torch.isnan(iou)] = 0  # Handle division by zero
+        # Compute the mean IoU across all classes
+        return iou.mean().item()
+
+
+
+
+

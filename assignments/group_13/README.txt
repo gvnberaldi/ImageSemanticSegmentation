@@ -1,2 +1,0 @@
-Please change the API key and entity in dlvc/utils.py to your wandb API key and entity
-running the training can take a while, so run with caution, you can kill the sweep after a while if it takes too long
