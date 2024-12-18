@@ -105,7 +105,7 @@ For other training details, please refer to the [report](docs/report.pdf) includ
 ![SegFormer Test Results](docs/images/segformer_result.jpg)
 
 #### SegFormer Predicted Mask Examples
-![SegFormer Predicted Masks](docs/images/segformer_masks.jpg)
+![SegFormer Predicted Masks](docs/images/segformer_mask.jpg)
 
 ## Conclusion
 - **Fine-Tuning**: Optimal strategy for both models, balancing training speed and performance.
